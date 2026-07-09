@@ -31,7 +31,30 @@
     "chevron-left": '<path d="m15 18-6-6 6-6"/>',
     sparkle:
       '<path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="M12 8a4 4 0 0 0 4 4 4 4 0 0 0-4 4 4 4 0 0 0-4-4 4 4 0 0 0 4-4Z"/>',
+    menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+    inbox:
+      '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/>',
+    "file-text":
+      '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/>',
+    "help-circle":
+      '<circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+    folder:
+      '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>',
   };
+
+  // 마스코트 — 브랜드 장식(고양이). UI 아이콘이 아니라 일러스트라 별도.
+  var MASCOT =
+    '<svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">' +
+    '<circle cx="24" cy="24" r="24" fill="var(--thread-1)"/>' +
+    '<g fill="none" stroke="var(--thread-6)" stroke-width="1.6" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M16 16l3 5M32 16l-3 5"/>' +
+    '<path d="M15 27a9 9 0 0 0 18 0c0-4-2-7-4-8.5-1.5-1-3.2-1.5-5-1.5s-3.5.5-5 1.5C17 20 15 23 15 27Z"/>' +
+    '<path d="M20.5 26h.01M27.5 26h.01"/>' +
+    '<path d="M24 29v1.5M24 30.5l-1.5 1M24 30.5l1.5 1"/>' +
+    '<path d="M12 25h4M32 25h4"/>' +
+    "</g></svg>";
 
   /** 인라인 SVG 문자열을 반환한다. currentColor 상속. */
   function icon(name, size) {
@@ -53,6 +76,7 @@
     version: "0.1.0",
     icons: ICONS,
     icon: icon,
+    mascot: MASCOT,
 
     /** 회전형 프롬프트 힌트(R6). 빈 화면 공포 방지, 독촉 아님(R7). */
     promptHints: [

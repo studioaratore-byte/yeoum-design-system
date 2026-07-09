@@ -10,9 +10,9 @@
 @import "./tokens/spacing.css";
 
 /* ── 컴포넌트 ─────────────────────────────────────── */
-@import "./components/core.css?v=2";
-@import "./components/capture.css?v=2";
-@import "./components/fragments.css?v=2";
+@import "./components/core.css?v=3";
+@import "./components/capture.css?v=3";
+@import "./components/fragments.css?v=3";
 
 /* ── 베이스 리셋 ──────────────────────────────────── */
 *,

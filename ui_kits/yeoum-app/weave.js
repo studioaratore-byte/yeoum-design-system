@@ -1,133 +1,195 @@
-/* ui_kits/yeoum-app/weave.js — 로컬 수렴(엮기) 엔진.
+/* ui_kits/yeoum-app/weave.js — 로컬 수렴(엮기) 엔진. 2단계.
  *
- * 백엔드/LLM 없이 조각(fragments)을 '완성된 결과물'로 엮는 목업.
- * 사람=발산(강점) / AI=수렴 보완 / 결과물=글·기획.
- * 실제 제품에선 이 함수 하나를 LLM 호출로 교체한다.
+ *   1) extractSeeds(fragments)  — 폭주한 덤프에서 '씨앗'(핵심)을 줍는다.
+ *   2) composeDoc(seeds, ...)   — 고른 씨앗을 '내 생각/AI 보강'이 섞인 글로 엮는다.
+ *
+ * 백엔드/LLM 없이 도는 목업. 사람=발산 / AI=수렴 보완 / 결과물=글·기획.
+ * 실제 제품에선 이 두 함수를 LLM 호출로 교체한다.
  */
 (function (global) {
   "use strict";
 
-  // '기획'류 신호 — 실행 3단계 허용(경계선 §8). 이 외엔 '글'.
   var PLAN_HINTS = [
     "계획", "기획", "하자", "만들", "출시", "론칭", "런칭", "준비",
-    "런치", "실행", "프로젝트", "일정", "로드맵", "전략", "제안",
+    "런치", "실행", "프로젝트", "일정", "로드맵", "전략", "제안", "도구",
   ];
-
   var STOP = /[.!?。…\n]+/;
 
-  function firstClause(text) {
-    var t = text.trim().split(STOP)[0].trim();
-    // 흔한 군더더기 도입어 제거
+  function firstClause(text, max) {
+    var t = (text || "").trim().split(STOP)[0].trim();
     t = t.replace(/^(그리고|근데|그래서|그냥|아마|음|아|어)\s+/, "");
-    var MAX = 18;
-    if (t.length > MAX) {
-      var cut = t.slice(0, MAX);
+    max = max || 18;
+    if (t.length > max) {
+      var cut = t.slice(0, max);
       var sp = cut.lastIndexOf(" ");
-      // 음절 중간에서 자르지 않도록 마지막 어절 경계에서 끊는다
       if (sp > 7) cut = cut.slice(0, sp);
       t = cut.trim() + "…";
     }
+    return t.replace(/[,·\-\s]+$/, "");
+  }
+
+  function condense(text, max) {
+    var t = (text || "").trim().replace(/\s+/g, " ");
+    max = max || 64;
+    if (t.length > max) t = t.slice(0, max - 1).trim() + "…";
     return t;
   }
 
-  function condense(text) {
-    var t = text.trim().replace(/\s+/g, " ");
-    if (t.length > 60) t = t.slice(0, 58).trim() + "…";
-    return t;
-  }
-
-  function looksLikePlan(fragments) {
-    var joined = fragments.join(" ");
+  function looksLikePlan(list) {
+    var joined = list.join(" ");
     return PLAN_HINTS.some(function (h) {
       return joined.indexOf(h) !== -1;
     });
   }
 
-  function pickTitle(fragments) {
-    // 처음 쏟은 조각을 주제 씨앗으로(가장 즉각적인 관심사).
-    var seed = firstClause(fragments[0] || "생각 조각");
-    return seed.replace(/[,·\-\s]+$/, "");
+  /** 연속 조각을 parts개의 그룹으로 최대한 고르게 나눈다. */
+  function chunk(arr, parts) {
+    parts = Math.max(1, Math.min(parts, arr.length));
+    var out = [];
+    var size = Math.ceil(arr.length / parts);
+    for (var i = 0; i < arr.length; i += size) {
+      out.push(arr.slice(i, i + size));
+    }
+    return out;
   }
 
+  // 씨앗 맥락 라벨 — 발산을 '증폭 가시화'하는 카피 장치.
+  var LABELERS = [
+    function (g, i) {
+      return "이번 주 " + (g.length + 2) + "번 반복된 주제";
+    },
+    function (g, i) {
+      return g.length + "개 조각이 하나로 모임";
+    },
+    function (g, i) {
+      return 2 + i + "일 전 조각과 이어짐";
+    },
+  ];
+
   /**
-   * @param {string[]} fragments  쏟아낸 조각들
-   * @param {string[]} [answers]  되물음에 대한 답(있으면 반영)
-   * @returns {object} draft
+   * @param {string[]} fragments
+   * @returns {{id,label,title,body,sources}[]}
    */
-  function weave(fragments, answers) {
+  function extractSeeds(fragments) {
     fragments = (fragments || [])
       .map(function (f) {
         return (f || "").trim();
       })
       .filter(Boolean);
+    if (!fragments.length) return [];
+
+    var n = fragments.length;
+    var seedCount = n <= 1 ? 1 : n <= 3 ? 2 : 3;
+    var groups = chunk(fragments, seedCount);
+
+    return groups.map(function (g, i) {
+      // 대표(가장 긴) 조각을 제목 씨앗으로.
+      var rep = g.slice().sort(function (a, b) {
+        return b.length - a.length;
+      })[0];
+      return {
+        id: "s" + i,
+        label: LABELERS[i % LABELERS.length](g, i),
+        title: firstClause(rep, 16),
+        body: condense(g.join(" · "), 70),
+        sources: g.slice(),
+      };
+    });
+  }
+
+  // AI 보강 문단 — 씨앗을 잇는 수렴 브릿지(결정적 템플릿, 자기완결형).
+  var BRIDGES = [
+    "정리하려는 순간 생각은 도망간다. 그래서 분류와 폴더 대신, 쏟아진 조각을 그대로 받아 자동으로 엮는 흐름이 필요하다.",
+    "흩어져 있던 조각들은 결함이 아니라 방향이다. 조각이 많을수록 엮을 실이 많아진다.",
+    "혼자선 0개였던 완성이, 쏟기만 하면 1개가 된다. 발산은 그대로 두고 수렴만 도구에 맡기면 된다.",
+  ];
+
+  /**
+   * @param {object[]} seeds       고른 씨앗들
+   * @param {string[]} fragments   전체 조각(카운트·본문용)
+   * @param {string[]} [answers]   되물음 답
+   * @returns {object} draft
+   */
+  function composeDoc(seeds, fragments, answers) {
+    seeds = seeds || [];
+    fragments = (fragments || []).filter(Boolean);
     answers = (answers || []).filter(Boolean);
 
-    var isPlan = looksLikePlan(fragments.concat(answers));
-    var title = pickTitle(fragments);
+    var isPlan = looksLikePlan(
+      fragments.concat(answers).concat(
+        seeds.map(function (s) {
+          return s.title;
+        })
+      )
+    );
 
-    // 씨앗 — 각 조각을 한 줄로 압축(핵심 추출의 목업).
-    var seeds = fragments.map(condense);
+    var paras = [];
+    seeds.forEach(function (s, i) {
+      // 내 생각 — 사용자의 실제 조각을 이어 붙인 문단.
+      paras.push({ who: "me", text: cleanJoin(s.sources) });
+      // AI 보강 — 수렴 브릿지 한 문단.
+      paras.push({ who: "ai", text: BRIDGES[i % BRIDGES.length] });
+    });
+    if (answers.length) {
+      paras.push({ who: "me", text: cleanJoin(answers) });
+    }
 
-    // 인트로 — 조각 수를 증폭 카피로.
-    var intro =
-      "흩어져 있던 조각 " +
-      fragments.length +
-      "개를 모아 하나의 " +
-      (isPlan ? "기획으로" : "글로") +
-      " 엮었어요. 아래는 그 초안이에요.";
-
-    // 본문 문단 — 조각들을 흐름 있게 이어 붙임(목업).
-    var body = fragments
-      .map(function (f) {
-        return f.trim();
-      })
-      .join(" ");
+    var title = seeds.length ? seeds[0].title.replace(/…$/, "") : "생각 조각";
 
     var draft = {
-      kind: isPlan ? "기획 초안" : "글 초안",
+      kind: "초안",
       title: title,
-      intro: intro,
-      seeds: seeds,
-      body: body,
-      steps: null,
+      paras: paras,
       fragmentCount: fragments.length,
+      seedCount: seeds.length,
       createdAt: Date.now(),
+      steps: null,
+      reask: pickReask(paras, isPlan),
     };
 
     if (isPlan) {
-      // 실행 3단계 — 산출물의 내용일 뿐, 사용자의 하루를 추적하지 않는다.
       draft.steps = [
-        "가장 마음이 가는 조각 하나를 골라 오늘 30분만 써봐요.",
+        "가장 마음이 가는 씨앗 하나를 골라 오늘 30분만 써봐요.",
         "그 결과를 다음날 다시 열어 한 번 더 엮어요.",
-        "충분하다 싶으면 복사해서 원하는 곳에 붙여넣어요.",
+        "충분하다 싶으면 내보내서 원하는 곳에 붙여넣어요.",
       ];
     }
-
-    if (answers.length) {
-      draft.body +=
-        " " + answers.join(" ").trim();
-    }
-
     return draft;
   }
 
-  /** 되물음 — 부드러운 후속 질문 하나. 비난·독촉 없이. */
-  function nextQuestion(draft) {
-    var pool = draft && draft.kind === "기획 초안"
-      ? [
-          "이걸 누구한테 보여주고 싶어요? 한 사람만 떠올려봐요.",
-          "가장 먼저 손대고 싶은 부분은 어디예요?",
-          "여기서 딱 하나만 더 붙인다면 뭘까요?",
-        ]
-      : [
-          "이 글에서 제일 하고 싶었던 말은 뭐였어요?",
-          "빠진 조각이 하나 있다면, 그게 뭘까요?",
-          "누가 이걸 읽었으면 좋겠어요?",
-        ];
-    // createdAt 기반 결정적 선택(랜덤 미사용).
-    var idx = draft && draft.createdAt ? draft.createdAt % pool.length : 0;
-    return pool[idx];
+  function cleanJoin(list) {
+    return list
+      .map(function (t) {
+        return t.trim().replace(/[·\s]+$/, "");
+      })
+      .join(". ")
+      .replace(/\.\.+/g, ".");
   }
 
-  global.YeoumWeave = { weave: weave, nextQuestion: nextQuestion };
+  // 되물음 — AI 보강 문단 중 하나를 '근거 약한 곳'으로 지목.
+  function pickReask(paras, isPlan) {
+    var ai = paras.filter(function (p) {
+      return p.who === "ai";
+    });
+    if (!ai.length) {
+      return {
+        weak: "",
+        text: "이 글에서 제일 하고 싶었던 말은 뭐였어요? 한 줄만 더 쏟아줄래요?",
+      };
+    }
+    var target = ai[0];
+    var phrase = firstClause(target.text, 20);
+    return {
+      weak: phrase,
+      text:
+        "‘" +
+        phrase +
+        "’ 이 부분, 왜 기존 방식으론 안 됐는지 근거가 좀 약해요. 30초만 더 쏟아줄래요?",
+    };
+  }
+
+  global.YeoumWeave = {
+    extractSeeds: extractSeeds,
+    composeDoc: composeDoc,
+  };
 })(typeof window !== "undefined" ? window : this);
