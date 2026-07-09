@@ -17,7 +17,16 @@
 
   function firstClause(text) {
     var t = text.trim().split(STOP)[0].trim();
-    if (t.length > 26) t = t.slice(0, 24).trim() + "…";
+    // 흔한 군더더기 도입어 제거
+    t = t.replace(/^(그리고|근데|그래서|그냥|아마|음|아|어)\s+/, "");
+    var MAX = 18;
+    if (t.length > MAX) {
+      var cut = t.slice(0, MAX);
+      var sp = cut.lastIndexOf(" ");
+      // 음절 중간에서 자르지 않도록 마지막 어절 경계에서 끊는다
+      if (sp > 7) cut = cut.slice(0, sp);
+      t = cut.trim() + "…";
+    }
     return t;
   }
 
@@ -35,13 +44,8 @@
   }
 
   function pickTitle(fragments) {
-    // 가장 긴 조각의 첫 구절을 제목 씨앗으로.
-    var longest = fragments
-      .slice()
-      .sort(function (a, b) {
-        return b.length - a.length;
-      })[0];
-    var seed = firstClause(longest || "생각 조각");
+    // 처음 쏟은 조각을 주제 씨앗으로(가장 즉각적인 관심사).
+    var seed = firstClause(fragments[0] || "생각 조각");
     return seed.replace(/[,·\-\s]+$/, "");
   }
 

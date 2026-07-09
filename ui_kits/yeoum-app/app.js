@@ -173,10 +173,16 @@
 
     var home = h('<div class="home"></div>');
     home.innerHTML =
+      '<div class="home__intro">' +
+      '<h1 class="home__greeting">무엇이든 쏟아요</h1>' +
+      '<p class="home__sub">떠오른 대로. 정리는 엮음이 할게요.</p>' +
+      "</div>" +
+      '<div class="home__mic-wrap">' +
       '<button class="ys-mic" id="homeMic" type="button" aria-label="쏟기 — 음성으로 시작">' +
       icon("mic", 40) +
       "</button>" +
-      '<p class="ys-prompt-hint home__hint" id="homeHint"></p>';
+      '<p class="ys-prompt-hint home__hint" id="homeHint"></p>' +
+      "</div>";
 
     // 텍스트는 보조(R2)
     var textToggle = h(
@@ -289,8 +295,10 @@
   function weaveBar() {
     var bar = h('<div class="ys-weavebar" id="weavebar"></div>');
     bar.innerHTML =
-      '<div class="ys-weavebar__count"><span>조각</span><b id="wbCount">0</b><span>개</span></div>' +
-      '<button class="ys-btn ys-btn--primary" id="weaveBtn" type="button" aria-disabled="true">엮기</button>';
+      '<div class="ys-weavebar__count">조각 <b id="wbCount">0</b>개</div>' +
+      '<button class="ys-btn ys-btn--primary" id="weaveBtn" type="button" aria-disabled="true">' +
+      icon("git-merge", 20) +
+      "엮기</button>";
     bar.querySelector("#weaveBtn").addEventListener("click", function () {
       if (!state.fragments.length) return;
       startWeaving();

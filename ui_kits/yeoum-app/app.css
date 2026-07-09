@@ -10,7 +10,7 @@ body {
 body {
   display: grid;
   place-items: center;
-  background: #e7e5ec;
+  background: radial-gradient(140% 90% at 50% 0%, #edeaf2 0%, #e4e1ea 72%);
   padding: 0;
 }
 
@@ -24,7 +24,12 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--paper-0);
+  background: radial-gradient(
+      120% 55% at 50% -6%,
+      color-mix(in srgb, var(--thread-5) 7%, transparent) 0%,
+      transparent 58%
+    ),
+    var(--paper-0);
 }
 @media (min-width: 480px) {
   .app {
@@ -149,19 +154,68 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--sp-5);
-  padding: var(--edge);
+  gap: var(--sp-6);
+  padding: var(--sp-7) var(--edge) var(--sp-6);
   text-align: center;
 }
-.home__mark {
-  margin-bottom: var(--sp-2);
+.home__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.home__greeting {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+  color: var(--ink-1);
+}
+.home__sub {
+  font-size: var(--fs-body-md);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 24ch;
+  margin: 0 auto;
+}
+
+/* 마이크 + 은은한 앰비언트 글로우(R2 지배 요소) */
+.home__mic-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: var(--sp-3) 0;
+}
+.home__mic-wrap::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 62px;
+  width: 280px;
+  height: 280px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--thread-5) 20%, transparent) 0%,
+    color-mix(in srgb, var(--thread-5) 6%, transparent) 42%,
+    transparent 68%
+  );
+  filter: blur(6px);
+  z-index: 0;
+  pointer-events: none;
+}
+.home__mic-wrap .ys-mic,
+.home__mic-wrap .home__hint {
+  position: relative;
+  z-index: 1;
 }
 .home__hint {
-  max-width: 22ch;
+  max-width: 24ch;
 }
 /* 텍스트는 보조(R2) — 마이크 아래 작게 */
 .home__text-toggle {
-  margin-top: var(--sp-2);
+  margin-top: 0;
 }
 .home__textfield {
   width: 100%;

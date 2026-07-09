@@ -5,7 +5,9 @@
  * 미완성 허용(R4). 흰 배경 · radius 16 · 헤어라인 + 옅은 그림자. */
 .ys-fragment {
   position: relative;
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
   background: var(--paper-card);
   border: 1px solid var(--line-1);
   border-radius: var(--radius-md);
@@ -24,6 +26,9 @@
   }
 }
 .ys-fragment__text {
+  flex: 1;
+  min-width: 0;
+  padding-top: 3px;
   font-size: var(--fs-body-lg);
   line-height: var(--leading-body);
   color: var(--ink-1);
@@ -35,11 +40,21 @@
   font-size: var(--fs-caption);
   color: var(--ink-3);
 }
-/* 빼기(x) — 채운 아이콘 금지, currentColor 라인 아이콘 */
+/* 빼기(x) — 채운 아이콘 금지, currentColor 라인 아이콘.
+ * 흐름 안에 두어 본문과 겹치지 않게. 코너로 살짝 당김. */
 .ys-fragment__remove {
-  position: absolute;
-  top: var(--sp-2);
-  right: var(--sp-2);
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin: -4px -6px 0 0;
+  color: var(--ink-3);
+}
+.ys-fragment__remove:hover {
+  color: var(--ink-1);
+}
+.ys-fragment__remove svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* ── SeedCard — AI가 뽑아낸 핵심 씨앗 ────────────────
@@ -80,9 +95,6 @@
   border-top: 1px solid var(--line-1);
 }
 .ys-weavebar__count {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-1);
   font-size: var(--fs-body-md);
   color: var(--ink-2);
 }
@@ -91,6 +103,7 @@
   font-weight: var(--fw-title);
   color: var(--accent);
   font-variant-numeric: tabular-nums;
+  margin: 0 1px;
 }
 .ys-weavebar .ys-btn {
   margin-left: auto;
