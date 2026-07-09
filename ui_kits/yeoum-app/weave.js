@@ -92,7 +92,7 @@
         id: "s" + i,
         label: LABELERS[i % LABELERS.length](g, i),
         title: firstClause(rep, 16),
-        body: condense(g.join(" · "), 70),
+        body: condense(rep, 72),
         sources: g.slice(),
       };
     });
@@ -100,10 +100,14 @@
   function cleanJoin(list) {
     return list
       .map(function (t) {
-        return t.trim().replace(/[·\s]+$/, "");
+        // 조각 끝의 이음표·공백 정리 후, 문장으로 끝맺음
+        t = (t || "").trim().replace(/[·,\-\s]+$/, "");
+        if (t && !/[.!?…]$/.test(t)) t += ".";
+        return t;
       })
-      .join(". ")
-      .replace(/\.\.+/g, ".");
+      .filter(Boolean)
+      .join(" ") // 각 조각이 이미 마침표로 끝나므로 공백으로만 이음(뚝뚝 끊김 방지)
+      .replace(/\s{2,}/g, " ");
   }
   function localPickReask(paras) {
     var ai = paras.filter(function (p) {
