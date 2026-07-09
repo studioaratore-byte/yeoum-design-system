@@ -701,9 +701,12 @@
       state.cards = [];
       state.dismissed = {};
       seedIfEmpty();
-      refreshConnections();
       toast("예시를 넣었어요");
       go("store");
+      // 원문만 심었으니 실제 AI로 보관·연결을 채운다
+      distillPending(function () {
+        refreshConnections();
+      });
     });
     g3.appendChild(reseed);
     scroll.appendChild(g3);
