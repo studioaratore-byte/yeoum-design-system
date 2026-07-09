@@ -1,12 +1,13 @@
 /* ui_kits/yeoum-app/app.js — 엮음 앱 컨트롤러.
  *
- * 흐름: 쏟기(홈=음성) → 엮어줘 → 줍기·엮기(씨앗 선택) → 결과물 → 되물음.
- * 탭: 음성 · 보관함 · 설정.  좌측 드로어: 프로필·요약·기록·도움말·피드백.
+ * 방향(2026-07-10): 입력 → 보관 → 연결 → 노출.
+ *   담기(홈)  : 음성/텍스트로 즉시 쏟기 + 과거 생각 재노출(노출)
+ *   보관      : 짧은 카드(키워드·10자 주제)로 가볍게 남김
+ *   연결      : 흩어진 카드 사이의 반복 주제·의미 연결을 발견
+ *   노출      : 과거 카드를 부드럽게 다시 보여줌(독촉 아님) → 이어서 쏟게
  *
- * 설계 헌법 R1~R10:
- *   R1 홈이 곧 입력(조각이 홈에 바로 쌓임) · R2 마이크가 지배 요소
- *   R3 입력 중 강제 0(자동저장, 제목·태그·저장 없음) · R5 확인 모달 없음
- *   R7 독촉 없음(배지·스트릭·연체 없음) · R8 화면당 primary 1개 · R10 감각 차분
+ * 설계 헌법 R1~R10: 홈이 곧 입력 · 마이크 지배 · 입력 중 강제 0(자동저장) ·
+ *   확인 모달 없음 · 독촉/배지/스트릭 없음 · 화면당 primary 1개 · 감각 차분.
  */
 (function () {
   "use strict";
@@ -14,28 +15,23 @@
   var DS = window.YeoumDesignSystem;
   var WEAVE = window.YeoumWeave;
   var icon = DS.icon;
-  var STORE_KEY = "yeoum:v2";
+  var STORE_KEY = "yeoum:v3";
 
   /* ── 상태 ─────────────────────────────────────── */
   var state = {
-    fragments: [], // 현재 세션: [{ text, ts }]
-    answers: [],
-    seeds: [],
-    discarded: {}, // seedId -> true (폐기)
-    selected: {}, // seedId -> true (이걸로 엮기)
-    draft: null,
-    archive: [], // 결과물 보관
-    stats: { frag: 0, seed: 0 }, // 이번 주 발산 요약(누적)
+    cards: [], // [{ id, raw, keyword, topic, ts }]
+    connections: { clusters: [], resurface: [] },
+    connDirty: true, // 카드가 바뀌어 연결을 다시 계산해야 하는가
+    dismissed: {}, // resurface cardId -> true (이번 세션 노출 닫음)
     settings: { reducedMotion: false },
   };
 
   function load() {
     try {
       var s = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
-      state.archive = s.archive || [];
-      state.stats = s.stats || state.stats;
+      state.cards = s.cards || [];
+      state.connections = s.connections || { clusters: [], resurface: [] };
       state.settings = s.settings || state.settings;
-      state.fragments = s.fragments || [];
     } catch (e) {}
   }
   function persist() {
@@ -43,13 +39,43 @@
       localStorage.setItem(
         STORE_KEY,
         JSON.stringify({
-          archive: state.archive,
-          stats: state.stats,
+          cards: state.cards,
+          connections: state.connections,
           settings: state.settings,
-          fragments: state.fragments,
         })
       );
     } catch (e) {}
+  }
+
+  /* ── 시드 데이터(시연용) ──────────────────────────
+   * 연결·노출은 조각이 쌓여야 살아난다. 첫 실행 시 예시 카드를 심어
+   * '흩어진 생각이 하나로 이어지는' 순간을 바로 보여준다. */
+  var DAY = 86400000;
+  function seedIfEmpty() {
+    if (state.cards.length) return;
+    var now = Date.now();
+    var seeds = [
+      ["게임할 땐 몇 시간이고 집중하는데 공부는 10분도 못 앉아있어", "게임", "게임엔 몰입", 6],
+      ["ADHD는 관심 있는 거엔 과몰입한대. 나도 딱 그런 듯", "ADHD", "과몰입 특성", 6],
+      ["아이디어는 계속 나오는데 하나도 끝을 못 봐", "실행력", "완성이 안 됨", 5],
+      ["할 일을 게임 퀘스트처럼 만들면 실행이 될까", "실행력", "퀘스트로 실행", 4],
+      ["타이머 25분 켜고 하기, 이건 좀 먹혔음", "집중", "짧은 타이머", 3],
+      ["친구가 옆에 있으면 이상하게 집중이 잘돼", "집중", "같이 하면 집중", 3],
+      ["ADHD 앱들은 죄다 할 일 관리라 죄책감만 들고 재미없어", "ADHD", "기존 앱 불만", 2],
+      ["게임처럼 레벨업 되는 실행 도구 있으면 진짜 쓸 텐데", "게임", "게임형 도구", 1],
+      ["요즘 계속 실행력 생각이 맴돌아", "실행력", "반복되는 관심", 0],
+    ];
+    state.cards = seeds.map(function (s, i) {
+      return {
+        id: "seed" + i,
+        raw: s[0],
+        keyword: s[1],
+        topic: s[2],
+        ts: now - s[3] * DAY - (seeds.length - i) * 1200000,
+      };
+    });
+    state.connDirty = true;
+    persist();
   }
 
   /* ── DOM 헬퍼 ─────────────────────────────────── */
@@ -81,7 +107,7 @@
   }
 
   /* ── 라우터 ───────────────────────────────────── */
-  var TABS = { capture: true, archive: true, settings: true };
+  var TABS = { capture: true, store: true, connect: true, settings: true };
   var current = "capture";
   function go(view, opts) {
     stopVoice();
@@ -104,8 +130,9 @@
 
   function tabbar(active) {
     var items = [
-      { id: "capture", label: "음성", ic: "mic" },
-      { id: "archive", label: "보관함", ic: "inbox" },
+      { id: "capture", label: "담기", ic: "mic" },
+      { id: "store", label: "보관", ic: "archive" },
+      { id: "connect", label: "연결", ic: "git-merge" },
       { id: "settings", label: "설정", ic: "settings" },
     ];
     var bar = h('<nav class="tabbar" aria-label="주요 이동"></nav>');
@@ -126,32 +153,68 @@
     return bar;
   }
 
-  /* ── 조각 조작 ────────────────────────────────── */
-  function addFragment(text) {
+  /* ── 카드 조작 ────────────────────────────────── */
+  function addCard(text) {
     text = (text || "").trim();
-    if (!text) return;
-    state.fragments.push({ text: text, ts: Date.now() });
-    state.stats.frag += 1;
+    if (!text) return null;
+    var card = {
+      id: "c" + Date.now() + Math.floor(Math.random() * 1000),
+      raw: text,
+      keyword: "",
+      topic: "", // 보관(distill) 전까지는 비어 있음
+      ts: Date.now(),
+    };
+    state.cards.push(card);
+    state.connDirty = true;
+    persist();
+    // 배경에서 짧은 카드로 보관(키워드·주제) 채우기 — 입력은 기다리지 않는다.
+    WEAVE.distill([text]).then(function (items) {
+      if (items && items[0]) {
+        card.keyword = items[0].keyword;
+        card.topic = items[0].topic;
+        persist();
+        if (current === "capture") renderRecent();
+        if (current === "store") go("store");
+      }
+    });
+    return card;
+  }
+  function removeCard(id) {
+    state.cards = state.cards.filter(function (c) {
+      return c.id !== id;
+    });
+    state.connDirty = true;
     persist();
   }
-  function removeFragment(i) {
-    state.fragments.splice(i, 1);
-    persist();
+  function cardById(id) {
+    return state.cards.filter(function (c) {
+      return c.id === id;
+    })[0];
   }
-  function fragTexts() {
-    return state.fragments.map(function (f) {
-      return f.text;
+
+  /* ── 연결 계산(배경) ──────────────────────────── */
+  function refreshConnections(cb) {
+    if (state.cards.length < 2) {
+      state.connections = { clusters: [], resurface: [] };
+      state.connDirty = false;
+      if (cb) cb();
+      return;
+    }
+    WEAVE.connect(state.cards).then(function (res) {
+      state.connections = res || { clusters: [], resurface: [] };
+      state.connDirty = false;
+      persist();
+      if (cb) cb();
     });
   }
 
   /* ── 뷰 ───────────────────────────────────────── */
   var VIEWS = {};
 
-  /* 홈 = 쏟기(음성 탭). 조각이 여기에 바로 쌓인다(R1). */
+  /* 담기(홈) = 쏟기 + 노출(과거 재부상). */
   VIEWS.capture = function () {
     var v = h('<section class="view view--capture"></section>');
 
-    // 상단바 — 햄버거 + "쏟기"
     var top = h('<header class="topbar"></header>');
     var menuBtn = h(
       '<button class="ys-icon-btn" type="button" aria-label="메뉴">' +
@@ -160,7 +223,7 @@
     );
     menuBtn.addEventListener("click", openDrawer);
     top.appendChild(menuBtn);
-    top.appendChild(h('<div class="topbar__title topbar__title--lead">쏟기</div>'));
+    top.appendChild(h('<div class="topbar__title topbar__title--lead">담기</div>'));
     v.appendChild(top);
 
     // 히어로 — 마이크 + 힌트 + 입력 필드
@@ -177,21 +240,17 @@
     hero.appendChild(typeField);
     v.appendChild(hero);
 
-    // 조각 리스트(스크롤)
+    // 노출(재부상) 자리 + 최근 카드
     var scroll = h('<div class="fraglist-scroll" id="fragscroll"></div>');
-    scroll.appendChild(h('<div class="fraglist" id="fraglist"></div>'));
+    scroll.appendChild(h('<div id="resurfaceSlot"></div>'));
+    scroll.appendChild(h('<div class="fraglist" id="recentlist"></div>'));
     v.appendChild(scroll);
 
-    // 엮어줘 CTA
-    var cta = h('<div class="weave-cta" id="weavecta"></div>');
-    v.appendChild(cta);
-
-    // 힌트 회전(R6)
     setTimeout(function () {
       var hintEl = v.querySelector("#homeHint");
       if (hintEl) DS.rotateHints(hintEl);
-      renderFragList();
-      renderWeaveCta();
+      renderResurface();
+      renderRecent();
     }, 0);
 
     v.querySelector("#homeMic").addEventListener("click", function () {
@@ -200,10 +259,11 @@
     typeField.addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
-        addFragment(typeField.value);
+        if (!typeField.value.trim()) return;
+        addCard(typeField.value);
         typeField.value = "";
-        renderFragList();
-        renderWeaveCta();
+        toast("담아뒀어요");
+        renderRecent();
         var fs = document.getElementById("fragscroll");
         if (fs) fs.scrollTop = 0;
       }
@@ -212,70 +272,90 @@
     return v;
   };
 
-  function renderFragList() {
-    var list = document.getElementById("fraglist");
+  function renderResurface() {
+    var slot = document.getElementById("resurfaceSlot");
+    if (!slot) return;
+    slot.innerHTML = "";
+    var list = (state.connections.resurface || []).filter(function (r) {
+      return !state.dismissed[r.cardId] && cardById(r.cardId);
+    });
+    if (!list.length) return;
+    var r = list[0];
+    var card = cardById(r.cardId);
+    var wrap = h('<div class="resurface"></div>');
+    wrap.innerHTML =
+      '<div class="resurface__label">' +
+      icon("sparkle", 16) +
+      "<span>다시 만난 생각</span></div>" +
+      '<p class="resurface__msg">' +
+      esc(r.message) +
+      "</p>" +
+      '<div class="resurface__card"><b>' +
+      esc(card.keyword || "") +
+      "</b>" +
+      esc(card.topic || card.raw) +
+      "</div>";
+    var open = h(
+      '<button class="ys-btn ys-btn--secondary ys-btn--block resurface__open" type="button">이어서 쏟기</button>'
+    );
+    open.addEventListener("click", function () {
+      go("card", { id: card.id });
+    });
+    var dismiss = h(
+      '<button class="ys-icon-btn resurface__x" type="button" aria-label="닫기">' +
+        icon("x", 18) +
+        "</button>"
+    );
+    dismiss.addEventListener("click", function () {
+      state.dismissed[r.cardId] = true;
+      renderResurface();
+    });
+    wrap.appendChild(open);
+    wrap.appendChild(dismiss);
+    slot.appendChild(wrap);
+  }
+
+  function renderRecent() {
+    var list = document.getElementById("recentlist");
     if (!list) return;
     list.innerHTML = "";
-    if (!state.fragments.length) {
+    if (!state.cards.length) {
       list.appendChild(
         h(
-          '<div class="fraglist__empty ys-body-lg">아직 조각이 없어요.<br>떠오른 대로 쏟아봐요.</div>'
+          '<div class="fraglist__empty ys-body-lg">아직 담긴 생각이 없어요.<br>떠오른 대로 쏟아봐요.</div>'
         )
       );
       return;
     }
-    // 최신 조각이 위로
-    var frs = state.fragments.slice().reverse();
-    frs.forEach(function (f, ri) {
-      var i = state.fragments.length - 1 - ri;
-      var card = h('<article class="frag-card"></article>');
-      card.innerHTML =
-        '<div class="frag-card__text">' +
-        esc(f.text) +
-        "</div>" +
-        '<div class="frag-card__time">' +
-        fmtTime(f.ts) +
-        "</div>";
-      var rm = h(
-        '<button class="ys-icon-btn frag-card__remove" type="button" aria-label="이 조각 빼기">' +
-          icon("x", 18) +
-          "</button>"
-      );
-      rm.addEventListener("click", function () {
-        removeFragment(i);
-        renderFragList();
-        renderWeaveCta();
-      });
-      card.appendChild(rm);
-      list.appendChild(card);
+    list.appendChild(
+      h('<div class="recent-lead">최근 담은 생각</div>')
+    );
+    var recent = state.cards.slice().reverse().slice(0, 6);
+    recent.forEach(function (c) {
+      list.appendChild(miniCard(c));
     });
   }
 
-  function renderWeaveCta() {
-    var cta = document.getElementById("weavecta");
-    if (!cta) return;
-    var n = state.fragments.length;
-    cta.innerHTML = "";
-    var btn = h(
-      '<button class="ys-btn ys-btn--primary ys-btn--block ys-btn--lg" type="button">' +
-        icon("git-merge", 20) +
-        "엮어줘 · 조각 " +
-        n +
-        "개</button>"
-    );
-    if (!n) btn.setAttribute("aria-disabled", "true");
-    btn.addEventListener("click", function () {
-      if (!n) {
-        toast("먼저 뭐든 쏟아봐요");
-        return;
-      }
-      startPicking();
+  function miniCard(c) {
+    var card = h('<button class="mini-card" type="button"></button>');
+    card.innerHTML =
+      (c.keyword
+        ? '<span class="mini-card__kw">' + esc(c.keyword) + "</span>"
+        : '<span class="mini-card__kw mini-card__kw--pending">담는 중…</span>') +
+      '<span class="mini-card__topic">' +
+      esc(c.topic || c.raw) +
+      "</span>" +
+      '<span class="mini-card__time">' +
+      fmtTime(c.ts) +
+      "</span>";
+    card.addEventListener("click", function () {
+      go("card", { id: c.id });
     });
-    cta.appendChild(btn);
+    return card;
   }
 
   /* 몰입 음성 모드 — 흐려지는 라인 + 마이크 + 그만. */
-  VIEWS.voice = function (opts) {
+  VIEWS.voice = function () {
     var v = h('<section class="view view--voice"></section>');
     var wrap = h('<div class="voice"></div>');
     wrap.appendChild(h('<div class="voice__lines" id="voiceLines"></div>'));
@@ -291,14 +371,11 @@
     wrap.appendChild(stop);
     v.appendChild(wrap);
 
-    var returnTo = opts.returnTo || "capture";
+    // 이번 음성 세션에서 담은 카드(최근에 흐려지며 쌓임)
+    voiceSession = [];
     function finish() {
       stopVoice();
-      if (returnTo === "result-recompose") {
-        recomposeFromCurrent();
-      } else {
-        go("capture");
-      }
+      go("capture");
     }
     mic.addEventListener("click", finish);
     stop.addEventListener("click", finish);
@@ -312,16 +389,16 @@
     return v;
   };
 
+  var voiceSession = [];
   function renderVoiceLines(interim) {
     var box = document.getElementById("voiceLines");
     if (!box) return;
     box.innerHTML = "";
-    var recent = state.fragments.slice(-4);
-    recent.forEach(function (f, i) {
+    var recent = voiceSession.slice(-4);
+    recent.forEach(function (text, i) {
       var line = h('<p class="voice__line"></p>');
-      line.textContent = f.text;
-      // 오래된 라인일수록 흐리게
-      var depth = recent.length - i; // 1(최신) .. n
+      line.textContent = text;
+      var depth = recent.length - i;
       line.style.opacity = String(Math.max(0.28, 1 - (depth - 1) * 0.28));
       if (i === recent.length - 1 && !interim) line.classList.add("is-current");
       box.appendChild(line);
@@ -338,344 +415,201 @@
     }
   }
 
-  /* 씨앗 추출 → 줍기·엮기 (AI 호출, 로딩 표시) */
-  function startPicking() {
-    state._weaveMsg = "핵심을 줍는 중이에요";
-    go("weaving");
-    WEAVE.extractSeeds(fragTexts()).then(function (seeds) {
-      state.seeds = seeds;
-      state.discarded = {};
-      state.selected = {};
-      // 기본: 모두 선택된 채로 시작(원하는 것만 폐기/해제)
-      state.seeds.forEach(function (s) {
-        state.selected[s.id] = true;
-      });
-      state.stats.seed += state.seeds.length;
-      persist();
-      go("seeds");
-    });
-  }
-
-  VIEWS.seeds = function () {
-    var v = h('<section class="view"></section>');
-    v.appendChild(
-      topbar("줍기 · 엮기", function () {
-        go("capture");
-      })
-    );
-    var scroll = h('<div class="view__scroll view__scroll--flush"></div>');
-    scroll.appendChild(
-      h(
-        '<p class="section-lead ys-body">폭주한 덤프에서 핵심을 줍었어요 — 고르기만 하면 돼.</p>'
-      )
-    );
-    var groups = h('<div class="seed-groups" id="seedgroups"></div>');
-    scroll.appendChild(groups);
-    v.appendChild(scroll);
-
-    var cta = h('<div class="weave-cta"></div>');
-    var make = h(
-      '<button class="ys-btn ys-btn--primary ys-btn--block ys-btn--lg" type="button">결과물 만들기</button>'
-    );
-    make.addEventListener("click", function () {
-      var chosen = state.seeds.filter(function (s) {
-        return !state.discarded[s.id] && state.selected[s.id];
-      });
-      if (!chosen.length) {
-        chosen = state.seeds.filter(function (s) {
-          return !state.discarded[s.id];
-        });
-      }
-      if (!chosen.length) {
-        toast("엮을 씨앗이 하나는 있어야 해요");
-        return;
-      }
-      makeResult(chosen);
-    });
-    cta.appendChild(make);
-    v.appendChild(cta);
-
-    setTimeout(renderSeeds, 0);
-    return v;
-  };
-
-  function renderSeeds() {
-    var box = document.getElementById("seedgroups");
-    if (!box) return;
-    box.innerHTML = "";
-    state.seeds.forEach(function (s) {
-      if (state.discarded[s.id]) return;
-      var group = h('<div class="seed-group"></div>');
-      group.appendChild(
-        h('<div class="seed-label">' + esc(s.label) + "</div>")
-      );
-      var card = h('<article class="seed-card"></article>');
-      if (state.selected[s.id]) card.classList.add("is-selected");
-      card.innerHTML =
-        '<h3 class="seed-card__title">' +
-        esc(s.title) +
-        "</h3>" +
-        '<p class="seed-card__body">' +
-        esc(s.body) +
-        "</p>";
-      var actions = h('<div class="seed-card__actions"></div>');
-      var pick = h(
-        '<button class="ys-btn seed-pick" type="button">이걸로 엮기</button>'
-      );
-      pick.classList.add(
-        state.selected[s.id] ? "seed-pick--on" : "ys-btn--secondary"
-      );
-      pick.addEventListener("click", function () {
-        state.selected[s.id] = !state.selected[s.id];
-        renderSeeds();
-      });
-      var drop = h(
-        '<button class="ys-btn ys-btn--ghost seed-drop" type="button">폐기</button>'
-      );
-      drop.addEventListener("click", function () {
-        state.discarded[s.id] = true;
-        state.selected[s.id] = false;
-        renderSeeds();
-      });
-      actions.appendChild(pick);
-      actions.appendChild(drop);
-      card.appendChild(actions);
-      group.appendChild(card);
-      box.appendChild(group);
-    });
-    if (!box.children.length) {
-      box.appendChild(
-        h(
-          '<div class="fraglist__empty ys-body-lg">씨앗을 다 폐기했어요.<br>뒤로 가 더 쏟아봐요.</div>'
-        )
-      );
-    }
-  }
-
-  /* 결과물 생성 (AI 호출) */
-  function makeResult(chosenSeeds) {
-    state._weaveMsg = "엮는 중이에요";
-    go("weaving");
-    WEAVE.composeDoc(chosenSeeds, fragTexts(), state.answers).then(function (
-      draft
-    ) {
-      draft.fragmentCount = fragTexts().length;
-      draft.seedCount = chosenSeeds.length;
-      draft.createdAt = Date.now();
-      state.draft = draft;
-      archiveDraft(draft);
-      go("result", { fresh: true });
-    });
-  }
-  function recomposeFromCurrent() {
-    var chosen = state.seeds.filter(function (s) {
-      return !state.discarded[s.id] && state.selected[s.id];
-    });
-    if (!chosen.length) chosen = state.seeds;
-    makeResult(chosen);
-  }
-
-  VIEWS.weaving = function () {
-    var v = h('<section class="view"></section>');
-    var w = h('<div class="weaving"></div>');
-    var msg = state._weaveMsg || "엮는 중이에요";
-    var sub =
-      msg.indexOf("줍") !== -1
-        ? "쏟아낸 조각에서 핵심을 고르고 있어요…"
-        : "조각을 하나의 글로 모으고 있어요…";
-    w.innerHTML =
-      '<div class="weaving__glyph">' +
-      icon("git-merge", 56) +
-      "</div>" +
-      '<div class="ys-title">' +
-      esc(msg) +
-      "</div>" +
-      '<div class="weaving__count ys-body-lg">' +
-      sub +
-      "</div>";
-    v.appendChild(w);
-    return v;
-  };
-
-  /* 결과물 — 내 생각 / AI 보강 마커 + 되물음. */
-  VIEWS.result = function (opts) {
-    var d = opts.draft || state.draft;
-    if (!d) return VIEWS.capture();
-    var fromArchive = !!opts.fromArchive;
-
-    var v = h('<section class="view"></section>');
-
-    // 상단바 — 뒤로 + 공유
-    var top = h('<header class="topbar"></header>');
-    var back = h(
-      '<button class="ys-icon-btn" type="button" aria-label="뒤로">' +
-        icon("chevron-left", 24) +
-        "</button>"
-    );
-    back.addEventListener("click", function () {
-      go(fromArchive ? "archive" : "capture");
-    });
-    top.appendChild(back);
-    top.appendChild(h('<div class="topbar__spacer"></div>'));
-    var share = h(
-      '<button class="ys-icon-btn topbar__round" type="button" aria-label="내보내기">' +
-        icon("share", 22) +
-        "</button>"
-    );
-    share.addEventListener("click", function () {
-      shareDraft(d);
-    });
-    top.appendChild(share);
-    v.appendChild(top);
-
-    var scroll = h('<div class="view__scroll view__scroll--flush"></div>');
-
-    // 헤더 — 마스코트 + 증폭 pill
-    var head = h('<div class="result-head"></div>');
-    head.innerHTML =
-      '<div class="result-head__mascot">' +
-      DS.mascot +
-      "</div>" +
-      '<div class="result-pill">당신의 조각 <b>' +
-      d.fragmentCount +
-      "개</b> " +
-      icon("arrow-right", 16) +
-      " 이 글이 됐어요</div>";
-    scroll.appendChild(head);
-
-    scroll.appendChild(
-      h('<h1 class="result-title">' + esc(d.title) + "</h1>")
-    );
-    scroll.appendChild(
-      h('<div class="result-meta">초안 · 자동저장됨</div>')
-    );
-
-    // 범례
-    scroll.appendChild(
-      h(
-        '<div class="result-legend">' +
-          '<span class="legend-item legend-item--me">내 생각</span>' +
-          '<span class="legend-item legend-item--ai">AI 보강</span>' +
-          "</div>"
-      )
-    );
-
-    // 문단 — 좌측 바 마커
-    var body = h('<div class="result-body"></div>');
-    d.paras.forEach(function (p) {
-      body.appendChild(
-        h(
-          '<p class="result-para result-para--' +
-            p.who +
-            '">' +
-            esc(p.text) +
-            "</p>"
-        )
-      );
-    });
-    scroll.appendChild(body);
-
-    // 실행 3단계(기획류)
-    if (d.steps && d.steps.length) {
-      var steps = h('<div class="result-steps"></div>');
-      var sh = "<h3>실행 3단계</h3><ol>";
-      d.steps.forEach(function (s) {
-        sh += "<li>" + esc(s) + "</li>";
-      });
-      sh += "</ol>";
-      steps.innerHTML = sh;
-      scroll.appendChild(steps);
-    }
-
-    // 되물음
-    if (d.reask) {
-      var reask = h('<div class="reask-card"></div>');
-      reask.innerHTML =
-        '<div class="reask-card__label">엮음이 되물어요</div>' +
-        '<p class="reask-card__q">' +
-        esc(d.reask.text) +
-        "</p>";
-      var pourMore = h(
-        '<button class="ys-btn ys-btn--primary ys-btn--block" type="button">30초 더 쏟기</button>'
-      );
-      pourMore.addEventListener("click", function () {
-        go("voice", { returnTo: "result-recompose" });
-      });
-      reask.appendChild(pourMore);
-      scroll.appendChild(reask);
-    }
-
-    v.appendChild(scroll);
-
-    // 하단 액션 — 다듬기 / 다시 엮기
-    var actions = h('<div class="result-actions"></div>');
-    var refine = h(
-      '<button class="ys-btn ys-btn--secondary" type="button">다듬기</button>'
-    );
-    refine.addEventListener("click", function () {
-      go("voice", { returnTo: "result-recompose" });
-    });
-    var reweave = h(
-      '<button class="ys-btn ys-btn--ghost" type="button">다시 엮기</button>'
-    );
-    reweave.addEventListener("click", function () {
-      go("seeds");
-    });
-    actions.appendChild(refine);
-    actions.appendChild(reweave);
-    v.appendChild(actions);
-
-    if (opts.fresh)
-      setTimeout(function () {
-        toast("조각 " + d.fragmentCount + "개 → 결과물이 됐어요");
-      }, 400);
-
-    return v;
-  };
-
-  /* 보관함 */
-  VIEWS.archive = function () {
+  /* 보관 — 짧은 카드 목록. */
+  VIEWS.store = function () {
     var v = h('<section class="view"></section>');
     var top = h('<header class="topbar"></header>');
-    top.appendChild(h('<div class="topbar__title">보관함</div>'));
+    top.appendChild(h('<div class="topbar__title topbar__title--lead">보관</div>'));
     v.appendChild(top);
+
     var scroll = h('<div class="view__scroll"></div>');
-    if (!state.archive.length) {
+    if (!state.cards.length) {
       scroll.appendChild(
         h(
-          '<div class="fraglist__empty ys-body-lg">아직 엮은 결과물이 없어요.<br>음성 탭에서 뭐든 쏟아봐요.</div>'
+          '<div class="fraglist__empty ys-body-lg">아직 담긴 생각이 없어요.<br>담기 탭에서 뭐든 쏟아봐요.</div>'
         )
       );
     } else {
       scroll.appendChild(
         h(
-          '<p class="section-lead ys-body">지금까지 엮은 결과물 ' +
-            state.archive.length +
-            "개.</p>"
+          '<p class="section-lead ys-body">가볍게 담아둔 생각 ' +
+            state.cards.length +
+            "개. 정리하지 않아도 돼요.</p>"
         )
       );
-      var list = h('<div class="archive-list"></div>');
-      state.archive.forEach(function (d) {
-        var item = h('<button class="archive-item" type="button"></button>');
-        item.innerHTML =
-          '<div class="archive-item__title">' +
-          esc(d.title) +
-          "</div>" +
-          '<div class="archive-item__meta">조각 ' +
-          d.fragmentCount +
-          "개 · 씨앗 " +
-          (d.seedCount || 0) +
-          "개 · " +
-          fmtDate(d.createdAt) +
-          "</div>";
-        item.addEventListener("click", function () {
-          go("result", { draft: d, fromArchive: true });
+      var grid = h('<div class="card-grid"></div>');
+      state.cards
+        .slice()
+        .reverse()
+        .forEach(function (c) {
+          grid.appendChild(miniCard(c));
         });
-        list.appendChild(item);
-      });
-      scroll.appendChild(list);
+      scroll.appendChild(grid);
     }
     v.appendChild(scroll);
+    return v;
+  };
+
+  /* 연결 — 반복 주제 · 의미 연결 발견. */
+  VIEWS.connect = function () {
+    var v = h('<section class="view"></section>');
+    var top = h('<header class="topbar"></header>');
+    top.appendChild(h('<div class="topbar__title topbar__title--lead">연결</div>'));
+    top.appendChild(h('<div class="topbar__spacer"></div>'));
+    var refresh = h(
+      '<button class="ys-icon-btn topbar__round" type="button" aria-label="다시 연결">' +
+        icon("git-merge", 20) +
+        "</button>"
+    );
+    refresh.addEventListener("click", function () {
+      state.connDirty = true;
+      go("connect");
+    });
+    top.appendChild(refresh);
+    v.appendChild(top);
+
+    var scroll = h('<div class="view__scroll" id="connscroll"></div>');
+    v.appendChild(scroll);
+
+    setTimeout(function () {
+      if (state.cards.length < 2) {
+        scroll.appendChild(
+          h(
+            '<div class="fraglist__empty ys-body-lg">생각이 조금 더 쌓이면<br>흩어진 조각들이 어떻게 이어지는지 보여줄게요.</div>'
+          )
+        );
+        return;
+      }
+      scroll.appendChild(loadingBlock("흩어진 생각을 이어보는 중이에요"));
+      var run = function () {
+        renderClusters(scroll);
+      };
+      if (state.connDirty) refreshConnections(run);
+      else run();
+    }, 0);
+    return v;
+  };
+
+  function loadingBlock(msg) {
+    var w = h('<div class="conn-loading"></div>');
+    w.innerHTML =
+      '<div class="weaving__glyph">' +
+      icon("git-merge", 44) +
+      "</div><div class='ys-body'>" +
+      esc(msg) +
+      "</div>";
+    return w;
+  }
+
+  function renderClusters(scroll) {
+    scroll.innerHTML = "";
+    var clusters = state.connections.clusters || [];
+    if (!clusters.length) {
+      scroll.appendChild(
+        h(
+          '<div class="fraglist__empty ys-body-lg">아직 뚜렷한 연결은 안 보여요.<br>더 쏟을수록 이어질 실이 많아져요.</div>'
+        )
+      );
+      return;
+    }
+    scroll.appendChild(
+      h(
+        '<p class="section-lead ys-body">서로 떨어져 있던 생각이 이렇게 이어져요. 결론은 당신이 내려요.</p>'
+      )
+    );
+    clusters.forEach(function (cl) {
+      var group = h('<div class="cluster"></div>');
+      group.appendChild(
+        h('<div class="cluster__label">' + esc(cl.label) + "</div>")
+      );
+      if (cl.insight)
+        group.appendChild(
+          h('<p class="cluster__insight">' + esc(cl.insight) + "</p>")
+        );
+      var chips = h('<div class="cluster__cards"></div>');
+      (cl.cardIds || []).forEach(function (id) {
+        var c = cardById(id);
+        if (!c) return;
+        var chip = h('<button class="cluster-chip" type="button"></button>');
+        chip.innerHTML =
+          "<b>" +
+          esc(c.keyword || "") +
+          "</b>" +
+          esc(c.topic || c.raw);
+        chip.addEventListener("click", function () {
+          go("card", { id: c.id });
+        });
+        chips.appendChild(chip);
+      });
+      group.appendChild(chips);
+      var cont = h(
+        '<button class="ys-btn ys-btn--ghost cluster__more" type="button">이 흐름 이어서 쏟기</button>'
+      );
+      cont.addEventListener("click", function () {
+        go("voice");
+      });
+      group.appendChild(cont);
+      scroll.appendChild(group);
+    });
+  }
+
+  /* 카드 상세 — 원문 + 이어서 쏟기. */
+  VIEWS.card = function (opts) {
+    var c = cardById(opts.id);
+    if (!c) return VIEWS.store();
+    var v = h('<section class="view"></section>');
+    v.appendChild(
+      topbar("담긴 생각", function () {
+        go("store");
+      })
+    );
+    var scroll = h('<div class="view__scroll"></div>');
+
+    var head = h('<div class="card-detail__head"></div>');
+    head.innerHTML =
+      (c.keyword ? '<span class="card-detail__kw">' + esc(c.keyword) + "</span>" : "") +
+      '<span class="card-detail__time">' + fmtTime(c.ts) + "</span>";
+    scroll.appendChild(head);
+
+    if (c.topic)
+      scroll.appendChild(h('<h1 class="card-detail__topic">' + esc(c.topic) + "</h1>"));
+    scroll.appendChild(h('<p class="card-detail__raw">' + esc(c.raw) + "</p>"));
+
+    // 이 카드가 속한 연결
+    var related = (state.connections.clusters || []).filter(function (cl) {
+      return (cl.cardIds || []).indexOf(c.id) !== -1;
+    });
+    if (related.length) {
+      scroll.appendChild(h('<div class="card-detail__rel-label">이 생각과 이어진 흐름</div>'));
+      related.forEach(function (cl) {
+        var r = h('<button class="cluster-chip cluster-chip--wide" type="button"></button>');
+        r.innerHTML = "<b>" + esc(cl.label) + "</b>";
+        r.addEventListener("click", function () {
+          go("connect");
+        });
+        scroll.appendChild(r);
+      });
+    }
+    v.appendChild(scroll);
+
+    var actions = h('<div class="result-actions"></div>');
+    var pour = h(
+      '<button class="ys-btn ys-btn--primary" type="button">이어서 쏟기</button>'
+    );
+    pour.addEventListener("click", function () {
+      go("voice");
+    });
+    var del = h(
+      '<button class="ys-btn ys-btn--ghost" type="button">지우기</button>'
+    );
+    del.addEventListener("click", function () {
+      removeCard(c.id);
+      toast("지웠어요");
+      go("store");
+    });
+    actions.appendChild(pour);
+    actions.appendChild(del);
+    v.appendChild(actions);
     return v;
   };
 
@@ -683,7 +617,7 @@
   VIEWS.settings = function () {
     var v = h('<section class="view"></section>');
     var top = h('<header class="topbar"></header>');
-    top.appendChild(h('<div class="topbar__title">설정</div>'));
+    top.appendChild(h('<div class="topbar__title topbar__title--lead">설정</div>'));
     v.appendChild(top);
     var scroll = h('<div class="view__scroll"></div>');
 
@@ -698,10 +632,7 @@
     sw.setAttribute("aria-checked", state.settings.reducedMotion ? "true" : "false");
     sw.addEventListener("click", function () {
       state.settings.reducedMotion = !state.settings.reducedMotion;
-      sw.setAttribute(
-        "aria-checked",
-        state.settings.reducedMotion ? "true" : "false"
-      );
+      sw.setAttribute("aria-checked", state.settings.reducedMotion ? "true" : "false");
       applyMotionSetting();
       persist();
     });
@@ -713,23 +644,38 @@
     g2.appendChild(
       h(
         '<div class="boundary-note">엮음은 <b>일정·리마인드·투두·목표 추적</b>을 하지 않아요. ' +
-          "빨간 배지도, 스트릭도, 연체도 없어요.<br><br>엮음은 당신의 <b>하루</b>가 아니라 " +
-          "<b>결과물</b>을 쪼개요. 깊이는 기능 수가 아니라 변환의 질로.</div>"
+          "빨간 배지도, 스트릭도, 독촉도 없어요.<br><br>과거 생각을 다시 보여주는 건 " +
+          "<b>독촉이 아니라</b>, 흩어진 생각을 다시 만나게 하려는 거예요. 결론은 늘 당신이 내려요.</div>"
       )
     );
     scroll.appendChild(g2);
 
     var g3 = h('<div class="settings-group"><h2>데이터</h2></div>');
     var clr = h(
-      '<button class="ys-btn ys-btn--secondary ys-btn--block" type="button">보관함 비우기</button>'
+      '<button class="ys-btn ys-btn--secondary ys-btn--block" type="button">모든 생각 비우기</button>'
     );
     clr.addEventListener("click", function () {
-      state.archive = [];
+      state.cards = [];
+      state.connections = { clusters: [], resurface: [] };
+      state.dismissed = {};
+      state.connDirty = true;
       persist();
-      toast("보관함을 비웠어요");
+      toast("비웠어요");
       go("settings");
     });
     g3.appendChild(clr);
+    var reseed = h(
+      '<button class="ys-btn ys-btn--ghost ys-btn--block" type="button" style="margin-top:8px">예시 생각 다시 넣기</button>'
+    );
+    reseed.addEventListener("click", function () {
+      state.cards = [];
+      state.dismissed = {};
+      seedIfEmpty();
+      refreshConnections();
+      toast("예시를 넣었어요");
+      go("store");
+    });
+    g3.appendChild(reseed);
     scroll.appendChild(g3);
 
     scroll.appendChild(
@@ -770,27 +716,21 @@
     var menu = h('<nav class="drawer__menu"></nav>');
     var items = [
       {
-        ic: "folder",
-        label: "이번 주 발산 요약",
-        sub:
-          "조각 " +
-          state.stats.frag +
-          " · 씨앗 " +
-          state.stats.seed +
-          " · 결과물 " +
-          state.archive.length,
+        ic: "archive",
+        label: "보관",
+        sub: "담은 생각 " + state.cards.length + "개",
         act: function () {
           shut();
-          go("archive");
+          go("store");
         },
       },
       {
-        ic: "file-text",
-        label: "내보낸 기록",
-        sub: null,
+        ic: "git-merge",
+        label: "연결",
+        sub: "발견된 흐름 " + (state.connections.clusters || []).length + "개",
         act: function () {
           shut();
-          go("archive");
+          go("connect");
         },
       },
       {
@@ -798,7 +738,7 @@
         label: "도움말",
         sub: null,
         act: function () {
-          toast("쏟고 → 엮어줘 → 골라서 → 결과물. 그게 다예요.");
+          toast("쏟기만 해요. 보관·연결·다시 만나기는 엮음이 맡아요.");
         },
       },
       {
@@ -864,73 +804,6 @@
     return bar;
   }
 
-  /* ── 저장/내보내기 ────────────────────────────── */
-  function archiveDraft(d) {
-    if (state._sid != null) {
-      var idx = state.archive.findIndex(function (x) {
-        return x._id === state._sid;
-      });
-      if (idx !== -1) {
-        d._id = state._sid;
-        state.archive[idx] = d;
-        persist();
-        return;
-      }
-    }
-    d._id = "d" + d.createdAt;
-    state._sid = d._id;
-    state.archive.unshift(d);
-    persist();
-  }
-  function draftToText(d) {
-    var lines = [d.title, ""];
-    d.paras.forEach(function (p) {
-      lines.push(p.text, "");
-    });
-    if (d.steps && d.steps.length) {
-      lines.push("[실행 3단계]");
-      d.steps.forEach(function (s, i) {
-        lines.push(i + 1 + ". " + s);
-      });
-    }
-    return lines.join("\n").trim();
-  }
-  function shareDraft(d) {
-    var text = draftToText(d);
-    if (navigator.share) {
-      navigator.share({ title: d.title, text: text }).catch(function () {});
-    } else {
-      copyText(text);
-    }
-  }
-  function copyText(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(
-        function () {
-          toast("복사했어요");
-        },
-        function () {
-          legacyCopy(text);
-        }
-      );
-    } else legacyCopy(text);
-  }
-  function legacyCopy(text) {
-    var ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      document.execCommand("copy");
-      toast("복사했어요");
-    } catch (e) {
-      toast("복사를 못 했어요. 한 번 더?");
-    }
-    document.body.removeChild(ta);
-  }
-
   /* ── 음성(webkitSpeechRecognition) ────────────── */
   var recog = null;
   var recActive = false;
@@ -951,7 +824,11 @@
       for (var i = e.resultIndex; i < e.results.length; i++) {
         var r = e.results[i];
         if (r.isFinal) {
-          addFragment(r[0].transcript);
+          var text = (r[0].transcript || "").trim();
+          if (text) {
+            addCard(text);
+            voiceSession.push(text);
+          }
           if (onInterim) onInterim("");
         } else {
           interim += r[0].transcript;
@@ -988,20 +865,13 @@
   function fmtTime(ts) {
     var d = new Date(ts),
       now = new Date();
+    var diff = now - d;
+    if (diff < 60000) return "방금";
     var same = d.toDateString() === now.toDateString();
-    var t = pad(d.getHours()) + ":" + pad(d.getMinutes());
-    return (same ? "오늘 " : d.getMonth() + 1 + "월 " + d.getDate() + "일 ") + t;
-  }
-  function fmtDate(ts) {
-    var d = new Date(ts);
-    return d.getFullYear() + "." + pad(d.getMonth() + 1) + "." + pad(d.getDate());
-  }
-  function prefersReduced() {
-    if (state.settings.reducedMotion) return true;
-    return (
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+    if (same) return pad(d.getHours()) + ":" + pad(d.getMinutes());
+    var days = Math.floor(diff / DAY);
+    if (days < 7) return days + "일 전";
+    return d.getMonth() + 1 + "월 " + d.getDate() + "일";
   }
   function applyMotionSetting() {
     document.documentElement.classList.toggle(
@@ -1012,6 +882,14 @@
 
   /* ── 부트 ─────────────────────────────────────── */
   load();
+  seedIfEmpty();
   applyMotionSetting();
   go("capture");
+  // 노출(재부상)을 위해 배경에서 연결을 미리 계산
+  setTimeout(function () {
+    if (state.connDirty)
+      refreshConnections(function () {
+        if (current === "capture") renderResurface();
+      });
+  }, 400);
 })();
