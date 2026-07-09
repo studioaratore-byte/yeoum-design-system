@@ -338,18 +338,22 @@
     }
   }
 
-  /* 씨앗 추출 → 줍기·엮기 */
+  /* 씨앗 추출 → 줍기·엮기 (AI 호출, 로딩 표시) */
   function startPicking() {
-    state.seeds = WEAVE.extractSeeds(fragTexts());
-    state.discarded = {};
-    state.selected = {};
-    // 기본: 모두 선택된 채로 시작(원하는 것만 폐기/해제)
-    state.seeds.forEach(function (s) {
-      state.selected[s.id] = true;
+    state._weaveMsg = "핵심을 줍는 중이에요";
+    go("weaving");
+    WEAVE.extractSeeds(fragTexts()).then(function (seeds) {
+      state.seeds = seeds;
+      state.discarded = {};
+      state.selected = {};
+      // 기본: 모두 선택된 채로 시작(원하는 것만 폐기/해제)
+      state.seeds.forEach(function (s) {
+        state.selected[s.id] = true;
+      });
+      state.stats.seed += state.seeds.length;
+      persist();
+      go("seeds");
     });
-    state.stats.seed += state.seeds.length;
-    persist();
-    go("seeds");
   }
 
   VIEWS.seeds = function () {
@@ -448,19 +452,20 @@
     }
   }
 
-  /* 결과물 생성 */
+  /* 결과물 생성 (AI 호출) */
   function makeResult(chosenSeeds) {
-    go("weaving", { chosen: chosenSeeds });
-    var reduce = prefersReduced();
-    setTimeout(
-      function () {
-        var draft = WEAVE.composeDoc(chosenSeeds, fragTexts(), state.answers);
-        state.draft = draft;
-        archiveDraft(draft);
-        go("result", { fresh: true });
-      },
-      reduce ? 200 : 1300
-    );
+    state._weaveMsg = "엮는 중이에요";
+    go("weaving");
+    WEAVE.composeDoc(chosenSeeds, fragTexts(), state.answers).then(function (
+      draft
+    ) {
+      draft.fragmentCount = fragTexts().length;
+      draft.seedCount = chosenSeeds.length;
+      draft.createdAt = Date.now();
+      state.draft = draft;
+      archiveDraft(draft);
+      go("result", { fresh: true });
+    });
   }
   function recomposeFromCurrent() {
     var chosen = state.seeds.filter(function (s) {
@@ -473,12 +478,21 @@
   VIEWS.weaving = function () {
     var v = h('<section class="view"></section>');
     var w = h('<div class="weaving"></div>');
+    var msg = state._weaveMsg || "엮는 중이에요";
+    var sub =
+      msg.indexOf("줍") !== -1
+        ? "쏟아낸 조각에서 핵심을 고르고 있어요…"
+        : "조각을 하나의 글로 모으고 있어요…";
     w.innerHTML =
       '<div class="weaving__glyph">' +
       icon("git-merge", 56) +
       "</div>" +
-      '<div class="ys-title">엮는 중이에요</div>' +
-      '<div class="weaving__count ys-body-lg">조각을 하나의 글로 모으고 있어요…</div>';
+      '<div class="ys-title">' +
+      esc(msg) +
+      "</div>" +
+      '<div class="weaving__count ys-body-lg">' +
+      sub +
+      "</div>";
     v.appendChild(w);
     return v;
   };

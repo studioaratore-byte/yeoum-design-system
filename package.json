@@ -1,0 +1,9 @@
+{
+  "name": "yeoum-design-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "엮음(Yeoum) 디자인 시스템 + 앱 — Vercel 서버리스로 Claude 엮기 백엔드 제공",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0"
+  }
+}
