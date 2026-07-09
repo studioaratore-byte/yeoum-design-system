@@ -84,7 +84,9 @@ async function runSeeds(client, fragments) {
     " 각 씨앗은 label(맥락 한 줄, 예: '이번 주 반복된 주제', 'N개 조각이 하나로 모임')," +
     " title(핵심을 짚는 짧은 제목, 16자 이내 권장)," +
     " body(왜 이게 씨앗인지 한두 문장)로 구성한다." +
-    " 반드시 사용자의 실제 조각 내용에 근거한다. 지어내지 않는다.";
+    " 절대 규칙: title·body는 조각에 실제로 등장한 단어와 사실만 사용한다." +
+    " 조각에 없는 소재·상황·숫자를 새로 지어내지 마라(예: 조각에 '앱 출시'가 있으면 '발표'로 바꾸지 말고, '유저 20명'을 '슬라이드 20장'으로 왜곡하지 마라)." +
+    " 확실하지 않으면 조각의 표현을 그대로 옮겨라.";
   const user =
     "다음은 사용자가 쏟아낸 조각들이야:\n" +
     fragments.map((f) => "- " + f).join("\n") +
@@ -95,7 +97,7 @@ async function runSeeds(client, fragments) {
     max_tokens: 1500,
     system,
     output_config: {
-      effort: "low",
+      effort: "medium",
       format: { type: "json_schema", schema: SEEDS_SCHEMA },
     },
     messages: [{ role: "user", content: user }],
@@ -112,7 +114,8 @@ async function runCompose(client, seeds, fragments, answers) {
     " paras: 문단 배열. 각 문단은 who('me'=사용자의 생각을 다듬은 것, 'ai'=AI가 보강한 연결·맥락)와 text." +
     " 사용자의 목소리를 살리되 흐르게 엮고, me와 ai를 자연스럽게 섞는다(보통 3~6문단)." +
     " steps: '기획 초안'일 때만 실행 3단계(선택). 사용자의 하루를 추적하지 말고, 산출물 내용으로서의 다음 행동만 담는다." +
-    " reask: 되물음 하나. 근거가 약하거나 더 듣고 싶은 지점을 짚어 '30초만 더 쏟아줄래요?' 식으로 부드럽게 묻는다.";
+    " reask: 되물음 하나. 근거가 약하거나 더 듣고 싶은 지점을 짚어 '30초만 더 쏟아줄래요?' 식으로 부드럽게 묻는다." +
+    " 절대 규칙: 조각과 씨앗에 없는 새로운 사실·소재·숫자를 지어내지 마라. AI 보강 문단도 사용자의 조각 맥락 안에서만 확장한다.";
 
   const seedLines = (seeds || [])
     .map(function (s) {
