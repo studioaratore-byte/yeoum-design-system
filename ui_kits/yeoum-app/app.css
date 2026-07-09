@@ -1,0 +1,479 @@
+/* ui_kits/yeoum-app/app.css — 앱 셸 레이아웃.
+ * 디자인 시스템 토큰만 참조한다. 컴포넌트 스타일은 상속. */
+
+/* 데스크: 폰 프레임을 은은한 배경 위에 중앙 배치.
+ * 모바일: 전체화면. */
+html,
+body {
+  height: 100%;
+}
+body {
+  display: grid;
+  place-items: center;
+  background: #e7e5ec;
+  padding: 0;
+}
+
+/* ── 폰 프레임 ───────────────────────────────────── */
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  height: 100dvh;
+  max-height: 900px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper-0);
+}
+@media (min-width: 480px) {
+  .app {
+    height: min(880px, 94vh);
+    border-radius: 34px;
+    box-shadow: 0 30px 80px rgba(42, 42, 51, 0.22),
+      0 2px 6px rgba(42, 42, 51, 0.1);
+    outline: 1px solid rgba(42, 42, 51, 0.06);
+  }
+}
+
+/* ── 뷰 스택 ─────────────────────────────────────── */
+.view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.view__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--sp-5) var(--edge);
+}
+.view__scroll--flush {
+  padding-bottom: 0;
+}
+
+/* 뷰 진입 — 은은한 페이드(바운스 없음, reduced-motion 존중) */
+.view.is-entering .view__scroll {
+  animation: view-in var(--motion-base) var(--ease) both;
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── 상단 바 ─────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-3);
+  min-height: 56px;
+}
+.topbar__title {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.topbar__spacer {
+  flex: 1;
+}
+
+/* 워드마크 — 로고 없음. Pretendard 600 "엮음"으로 조판. */
+.wordmark {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink-1);
+}
+.wordmark span {
+  color: var(--accent);
+}
+
+/* ── 하단 내비 (홈 · 보관함 · 설정) ──────────────── */
+.tabbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: var(--sp-2) var(--sp-4);
+  padding-bottom: max(var(--sp-2), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-1);
+  background: var(--paper-card);
+}
+.tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-sm);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  justify-content: center;
+  transition: color var(--motion-fast) var(--ease);
+}
+.tabbar__item svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tabbar__item .lab {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.tabbar__item[aria-current="true"] {
+  color: var(--accent);
+}
+
+/* ── 홈 히어로 ───────────────────────────────────── */
+.home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-5);
+  padding: var(--edge);
+  text-align: center;
+}
+.home__mark {
+  margin-bottom: var(--sp-2);
+}
+.home__hint {
+  max-width: 22ch;
+}
+/* 텍스트는 보조(R2) — 마이크 아래 작게 */
+.home__text-toggle {
+  margin-top: var(--sp-2);
+}
+.home__textfield {
+  width: 100%;
+  max-width: 340px;
+}
+
+/* ── 조각 리스트 ─────────────────────────────────── */
+.fraglist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.fraglist__empty {
+  text-align: center;
+  color: var(--ink-3);
+  padding: var(--sp-7) var(--sp-4);
+}
+
+/* 캡처 입력 바 (조각 추가) */
+.capture-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--edge);
+  border-top: 1px solid var(--line-1);
+  background: var(--paper-card);
+}
+.capture-input__row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+.capture-input__row .ys-field {
+  flex: 1;
+}
+
+/* ── 엮는 중 (수렴 로딩) ─────────────────────────── */
+.weaving {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: var(--edge);
+  text-align: center;
+}
+.weaving__glyph {
+  color: var(--accent);
+  animation: weave-breathe 2.4s var(--ease) infinite;
+}
+.weaving__glyph svg {
+  width: 56px;
+  height: 56px;
+}
+@keyframes weave-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .weaving__glyph {
+    animation: none;
+    opacity: 1;
+  }
+}
+.weaving__count {
+  color: var(--ink-2);
+}
+
+/* ── 결과물 ──────────────────────────────────────── */
+.result__amplify {
+  display: flex;
+  justify-content: center;
+  padding: var(--sp-2) 0 var(--sp-4);
+}
+.result__doc {
+  background: var(--paper-card);
+  border: 1px solid var(--line-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-6) var(--sp-5);
+}
+.result__title {
+  font-size: var(--fs-display);
+  font-weight: var(--fw-display);
+  line-height: 1.3;
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-1);
+}
+.result__kind {
+  display: inline-block;
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.result__doc p {
+  font-size: var(--fs-body-lg);
+  line-height: var(--leading-body);
+  color: var(--ink-1);
+  margin: var(--sp-4) 0 0;
+}
+.result__doc h3 {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-title);
+  margin: var(--sp-5) 0 var(--sp-2);
+  color: var(--ink-1);
+}
+.result__doc ol,
+.result__doc ul {
+  margin: var(--sp-2) 0 0;
+  padding-left: 1.3em;
+}
+.result__doc li {
+  font-size: var(--fs-body-lg);
+  line-height: var(--leading-body);
+  color: var(--ink-1);
+  margin-bottom: var(--sp-2);
+}
+.result__steps {
+  margin-top: var(--sp-5);
+  padding: var(--sp-4);
+  background: var(--accent-tint);
+  border-radius: var(--radius-md);
+}
+.result__steps h3 {
+  margin-top: 0;
+  color: var(--accent-press);
+}
+.result__actions {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--edge);
+  padding-bottom: max(var(--sp-4), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-1);
+  background: var(--paper-card);
+}
+.result__actions .ys-btn {
+  flex: 1;
+}
+
+/* ── 되물음 ──────────────────────────────────────── */
+.reask {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: var(--edge);
+}
+.reask__q {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-title);
+  line-height: 1.45;
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-1);
+}
+
+/* ── 보관함 리스트 ───────────────────────────────── */
+.archive-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.archive-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--line-1);
+  background: var(--paper-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-4);
+  transition: transform var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.archive-item:hover {
+  box-shadow: var(--shadow-raised);
+}
+.archive-item__title {
+  font-size: var(--fs-body-lg);
+  font-weight: 600;
+  color: var(--ink-1);
+}
+.archive-item__meta {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+
+/* ── 설정 ────────────────────────────────────────── */
+.settings-group {
+  margin-bottom: var(--sp-5);
+}
+.settings-group > h2 {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-bottom: var(--sp-2);
+  padding-left: var(--sp-1);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--paper-card);
+  border: 1px solid var(--line-1);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--sp-2);
+}
+.settings-row__label {
+  flex: 1;
+}
+.settings-row__label b {
+  display: block;
+  font-size: var(--fs-body-md);
+  font-weight: 500;
+  color: var(--ink-1);
+}
+.settings-row__label span {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+
+/* 토글 스위치 — 저채도 */
+.switch {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--paper-2);
+  cursor: pointer;
+  transition: background var(--motion-base) var(--ease);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(42, 42, 51, 0.24);
+  transition: transform var(--motion-base) var(--ease);
+}
+.switch[aria-checked="true"] {
+  background: var(--accent);
+}
+.switch[aria-checked="true"]::after {
+  transform: translateX(20px);
+}
+
+.boundary-note {
+  font-size: var(--fs-caption);
+  line-height: 1.7;
+  color: var(--ink-2);
+  padding: var(--sp-4);
+  background: var(--paper-1);
+  border-radius: var(--radius-md);
+}
+.boundary-note b {
+  color: var(--ink-1);
+}
+
+/* ── 토스트 (작은 보상 · 부드러운 피드백) ──────────── */
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--ink-1);
+  color: #fff;
+  font-size: var(--fs-label);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-base) var(--ease),
+    transform var(--motion-base) var(--ease);
+  z-index: 10;
+}
+.toast.is-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.section-lead {
+  color: var(--ink-2);
+  margin-bottom: var(--sp-4);
+}
+
+/* ── 수동 '모션 줄이기' (설정 토글) — 미디어 쿼리와 동일 효과 ── */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}

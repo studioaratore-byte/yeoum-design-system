@@ -1,0 +1,80 @@
+/* components/capture.css — MicButton(96px 히어로) · PromptHint(회전 힌트)
+ * 캡처 표면. 음성 우선(R2), 0탭 캡처(R1). */
+
+/* ── MicButton — 히어로 마이크(지배 요소) ────────────
+ * 96px. 텍스트는 보조. 바운스·무한 루프 금지 — 녹음 중엔
+ * 은은한 펄스(prefers-reduced-motion 시 정지). */
+.ys-mic {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-hero);
+  height: var(--tap-hero);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  box-shadow: var(--shadow-hero);
+  transition: background var(--motion-base) var(--ease),
+    box-shadow var(--motion-base) var(--ease);
+}
+.ys-mic:hover {
+  background: var(--accent-hover);
+}
+.ys-mic:active {
+  background: var(--accent-press);
+}
+.ys-mic svg {
+  width: 40px;
+  height: 40px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 녹음 중 — 은은한 링(무한 루프지만 저강도, reduced-motion 존중) */
+.ys-mic.is-recording::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--accent);
+  opacity: 0.35;
+  animation: ys-mic-ring 1.6s var(--ease) infinite;
+}
+@keyframes ys-mic-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  70% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ys-mic.is-recording::after {
+    animation: none;
+    opacity: 0.28;
+  }
+}
+
+/* ── PromptHint — 회전형 은은한 프롬프트 ─────────────
+ * 빈 화면 공포 방지(R6). 저채도, 낮은 대비. 독촉 아님(R7). */
+.ys-prompt-hint {
+  min-height: 1.6em;
+  color: var(--ink-3);
+  font-size: var(--fs-body-md);
+  text-align: center;
+  transition: opacity var(--motion-base) var(--ease);
+}
+.ys-prompt-hint.is-swapping {
+  opacity: 0;
+}

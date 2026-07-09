@@ -1,0 +1,44 @@
+/* tokens/colors.css — 무드: 쿨 뉴트럴 배경 + 라프텔 바이올렛 단일 액센트
+ * 색은 라프텔 바이올렛(thread) 한 계열로만. 빨강 계열 경고색 없음(R7). */
+
+:root {
+  /* ── 서피스 (paper) ───────────────────────────────── */
+  --paper-0: #f4f4f8; /* 앱 배경 */
+  --paper-1: #ebebf2; /* 필 / 비활성 배경 */
+  --paper-2: #e0e0ea; /* 눌림(pressed) */
+  --paper-card: #ffffff; /* 카드 배경 */
+  --surface-card: var(--paper-card); /* secondary 버튼 등 표면 */
+
+  /* ── 라인(hairline) ──────────────────────────────── */
+  --line-1: #e6e6ee; /* 옅은 헤어라인 (카드 내부 구분선) */
+  --line-2: #d4d4df; /* 보더 */
+
+  /* ── 잉크 (텍스트) ───────────────────────────────── */
+  --ink-1: #2a2a33; /* 본문 */
+  --ink-2: #6a6a78; /* 보조 */
+  --ink-3: #9c9cac; /* 힌트 / 캡션 */
+
+  /* ── Thread — 라프텔 바이올렛 액센트 램프 ─────────── */
+  --thread-1: #f0ebff; /* tint 필 */
+  --thread-2: #e2d9ff;
+  --thread-3: #c7b6ff; /* muted · 비활성 */
+  --thread-4: #9d7cff;
+  --thread-5: #7b4dff; /* base */
+  --thread-6: #6a3df0; /* hover */
+  --thread-7: #5a2fd8; /* press */
+
+  /* ── 시맨틱 별칭 ─────────────────────────────────── */
+  --accent: var(--thread-5);
+  --accent-hover: var(--thread-6);
+  --accent-press: var(--thread-7);
+  --accent-tint: var(--thread-1);
+  --accent-muted: var(--thread-3);
+  --on-accent: #ffffff;
+
+  /* 작은 보상 · 성공 피드백(저채도). 빨강 경고색은 두지 않는다. */
+  --positive: #3e9b7a;
+  --positive-tint: #e6f2ec;
+
+  /* 포커스 링 */
+  --focus-ring: color-mix(in srgb, var(--accent) 55%, transparent);
+}

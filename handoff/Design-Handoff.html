@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>엮음(Yeoum) — 디자인 핸드오프</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  doc-page:not(:defined){visibility:hidden}
+  body{ background:#E7E5EC; }
+  doc-page{
+    --t: var(--ink-1); --m: var(--ink-2); --f: var(--ink-3);
+    color: var(--ink-1);
+    font-family: var(--font-sans);
+    letter-spacing:-0.01em;
+  }
+  h1,h2,h3{ letter-spacing:-0.02em; margin:0; }
+  h1{ font-size:34px; font-weight:700; }
+  .sub{ font-size:15px; color:var(--ink-2); margin-top:8px; line-height:1.6; }
+  .kicker{ font-size:12px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.08em; }
+  h2{ font-size:20px; font-weight:600; margin:38px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line-1); }
+  h3{ font-size:15px; font-weight:600; margin:20px 0 8px; }
+  p{ font-size:14px; line-height:1.7; color:var(--ink-1); margin:0 0 10px; }
+  .muted{ color:var(--ink-2); }
+  code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; background:var(--paper-1); color:var(--thread-7); padding:1px 6px; border-radius:6px; }
+  ul{ margin:0 0 10px; padding-left:20px; }
+  li{ font-size:14px; line-height:1.7; margin-bottom:4px; }
+  .lead{ display:flex; align-items:baseline; gap:14px; }
+  .lead .k{ flex-shrink:0; min-width:38px; font-weight:700; color:var(--accent); }
+
+  .grid{ display:grid; gap:12px; }
+  .g2{ grid-template-columns:1fr 1fr; }
+  .g3{ grid-template-columns:repeat(3,1fr); }
+  .g4{ grid-template-columns:repeat(4,1fr); }
+  .card{ background:var(--paper-card); border:1px solid var(--line-1); border-radius:var(--radius-md); padding:14px 16px; break-inside:avoid; }
+
+  .sw{ border:1px solid var(--line-1); border-radius:12px; overflow:hidden; break-inside:avoid; }
+  .sw .chip{ height:56px; }
+  .sw .lab{ padding:8px 10px; font-size:12px; color:var(--ink-2); line-height:1.4; }
+  .row{ display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--line-1); }
+  .row:last-child{ border-bottom:none; }
+  .row .name{ font-weight:600; font-size:13.5px; }
+  .row .val{ margin-left:auto; font-family:ui-monospace,monospace; font-size:12px; color:var(--ink-2); }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; font-size:14px; font-weight:500; min-height:44px; padding:0 22px; border-radius:var(--radius-pill); }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-secondary{ background:var(--surface-card); color:var(--ink-1); border:1px solid var(--line-2); }
+  .btn-ghost{ background:transparent; color:var(--ink-2); }
+
+  .rule{ display:flex; gap:12px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--line-1); break-inside:avoid; }
+  .rule:last-child{ border-bottom:none; }
+  .rule .n{ flex-shrink:0; width:34px; height:34px; border-radius:10px; background:var(--accent-tint); color:var(--thread-7); font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .rule .t{ font-size:13.5px; line-height:1.55; padding-top:4px; }
+  .rule .t b{ color:var(--ink-1); }
+
+  .do{ background:var(--positive-tint); border-radius:12px; padding:12px 16px; }
+  .dont{ background:var(--paper-1); border-radius:12px; padding:12px 16px; }
+  .do .h,.dont .h{ font-size:12px; font-weight:600; margin-bottom:6px; }
+  .do .h{ color:var(--positive); } .dont .h{ color:var(--ink-3); }
+  .do li{ color:var(--ink-1); } .dont li{ color:var(--ink-3); text-decoration:line-through; }
+  .do ul,.dont ul{ margin:0; }
+
+  .foot{ display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--ink-3); padding:0 4px; }
+  .hd{ display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--ink-3); padding:0 4px; }
+  a{ color:var(--accent); }
+</style>
+</head>
+<body>
+<doc-page size="a4" margin="16mm">
+  <div slot="header" class="hd"><span>엮음(Yeoum) 디자인 핸드오프</span><span>v0.1 · 2026-07</span></div>
+  <div slot="footer" class="foot"><span>엮음 Design System</span><span>개발 핸드오프 · 내부용</span></div>
+
+  <div class="kicker">Design Handoff</div>
+  <h1>엮음 (Yeoum) 디자인 핸드오프</h1>
+  <p class="sub">폭주하는 생각을 마구 쏟으면, AI가 유의미한 걸 뽑아 '완성된 결과물'로 엮어주는 발산형(ADHD) 인재의 결과물 엔진. 이 문서는 개발 구현에 필요한 디자인 토큰·컴포넌트·규칙을 한 장에 정리한다.<br><span class="muted">사람 = 발산(강점) / AI = 수렴 보완 / 결과물 = 글·기획.</span></p>
+
+  <h2>1. 설계 헌법 — R1~R10</h2>
+  <p class="muted">모든 화면·컴포넌트가 지키는 타협 불가 규칙. ADHD 입력 피로 최소화가 목적.</p>
+  <div class="grid g2">
+    <div>
+      <div class="rule"><div class="n">R1</div><div class="t"><b>0탭 캡처</b> — 홈이 곧 입력창. "새로 만들기" 없음.</div></div>
+      <div class="rule"><div class="n">R2</div><div class="t"><b>음성 우선</b> — 큰 마이크가 지배 요소, 텍스트는 보조.</div></div>
+      <div class="rule"><div class="n">R3</div><div class="t"><b>입력 중 강제 0</b> — 제목·태그·저장버튼 금지. 자동저장만.</div></div>
+      <div class="rule"><div class="n">R4</div><div class="t"><b>미완성 허용</b> — 문법·완결 강요 UI 없음.</div></div>
+      <div class="rule"><div class="n">R5</div><div class="t"><b>언제든 중단</b> — "정말 나갈래?" 모달 금지.</div></div>
+    </div>
+    <div>
+      <div class="rule"><div class="n">R6</div><div class="t"><b>빈 화면 공포 방지</b> — 회전형 은은한 프롬프트.</div></div>
+      <div class="rule"><div class="n">R7</div><div class="t"><b>독촉 금지</b> — 빨간 배지·스트릭·연체 없음.</div></div>
+      <div class="rule"><div class="n">R8</div><div class="t"><b>한 화면 = 한 액션</b> — Primary 버튼 화면당 1개.</div></div>
+      <div class="rule"><div class="n">R9</div><div class="t"><b>작은 보상</b> — 부드러운 피드백. 게이미피케이션 X.</div></div>
+      <div class="rule"><div class="n">R10</div><div class="t"><b>감각 차분</b> — 넉넉한 여백, 저채도, 요소 최소.</div></div>
+    </div>
+  </div>
+
+  <h2>2. 컬러</h2>
+  <p class="muted">무드 = 쿨 뉴트럴 배경 + 라프텔 바이올렛 단일 액센트. 색은 라프텔 바이올렛 한 계열로만. 빨강 계열 경고색 없음.</p>
+  <h3>서피스 &amp; 잉크</h3>
+  <div class="grid g4">
+    <div class="sw"><div class="chip" style="background:var(--paper-0)"></div><div class="lab">--paper-0<br>#F4F4F8 앱 배경</div></div>
+    <div class="sw"><div class="chip" style="background:var(--paper-1)"></div><div class="lab">--paper-1<br>#EBEBF2 필</div></div>
+    <div class="sw"><div class="chip" style="background:var(--paper-2)"></div><div class="lab">--paper-2<br>#E0E0EA 눌림</div></div>
+    <div class="sw"><div class="chip" style="background:var(--paper-card)"></div><div class="lab">--paper-card<br>#FFFFFF 카드</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-1)"></div><div class="lab" style="color:var(--ink-2)">--ink-1<br>#2A2A33 본문</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-2)"></div><div class="lab">--ink-2<br>#6A6A78 보조</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-3)"></div><div class="lab">--ink-3<br>#9C9CAC 힌트</div></div>
+    <div class="sw"><div class="chip" style="background:var(--line-2)"></div><div class="lab">--line-2<br>#D4D4DF 보더</div></div>
+  </div>
+  <h3>Thread — 라프텔 바이올렛 액센트</h3>
+  <div class="grid g4">
+    <div class="sw"><div class="chip" style="background:var(--thread-1)"></div><div class="lab">--thread-1<br>tint 필</div></div>
+    <div class="sw"><div class="chip" style="background:var(--thread-3)"></div><div class="lab">--thread-3<br>muted·비활성</div></div>
+    <div class="sw"><div class="chip" style="background:var(--thread-5)"></div><div class="lab">--thread-5<br>#7B4DFF base</div></div>
+    <div class="sw"><div class="chip" style="background:var(--thread-6)"></div><div class="lab">--thread-6<br>hover</div></div>
+    <div class="sw"><div class="chip" style="background:var(--thread-7)"></div><div class="lab">--thread-7<br>press</div></div>
+  </div>
+
+  <h2>3. 타이포그래피</h2>
+  <p class="muted">Pretendard 단일 패밀리. 본문 줄간 1.6~1.65, 자간 -0.01em.</p>
+  <div class="card">
+    <div class="row"><span class="name" style="font-size:26px;font-weight:600">결과물 초안</span><span class="val">display · 26 / 600</span></div>
+    <div class="row"><span class="name" style="font-size:20px;font-weight:600">핵심 씨앗 카드</span><span class="val">title · 20 / 600</span></div>
+    <div class="row"><span class="name" style="font-size:17px;font-weight:400">조각과 결과물 본문</span><span class="val">body-lg · 17 / 400</span></div>
+    <div class="row"><span class="name" style="font-size:15px;font-weight:400">기본 UI 텍스트</span><span class="val">body-md · 15 / 400</span></div>
+    <div class="row"><span class="name" style="font-size:14px;font-weight:500">버튼 · 칩 레이블</span><span class="val">label · 14 / 500</span></div>
+    <div class="row"><span class="name" style="font-size:13px;font-weight:400;color:var(--ink-2)">날짜 · 힌트 · 캡션</span><span class="val">caption · 13 / 400</span></div>
+  </div>
+  <p class="muted" style="margin-top:10px;font-size:12.5px">폰트 파일 미제공 → jsDelivr CDN(Pretendard v1.3.9) 참조. 로컬 woff2 확보 시 <code>tokens/fonts.css</code> 교체.</p>
+
+  <h2>4. 스페이싱 · 라운딩 · 그림자 · 모션</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="margin-top:0">스페이싱 (4px 베이스)</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:12.5px;color:var(--ink-2);line-height:1.9;margin:0">1·4 &nbsp; 2·8 &nbsp; 3·12 &nbsp; 4·16 &nbsp; 5·24<br>6·32 &nbsp; 7·48 &nbsp; 8·64 &nbsp;·&nbsp; 화면 가장자리 24</p>
+      <h3>라운딩</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:12.5px;color:var(--ink-2);margin:0">sm 10 · md 16 · lg 24 · pill 999 — 각진 요소 없음</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">터치 타깃</h3>
+      <p style="font-size:13px;color:var(--ink-2);margin:0">최소 48px(<code>--tap-min</code>) · 히어로 마이크 96px(<code>--tap-hero</code>)</p>
+      <h3>모션</h3>
+      <p style="font-size:13px;color:var(--ink-2);margin:0">fast 160 · base 240 · slow 400(보상 전용)<br><code>cubic-bezier(.22,1,.36,1)</code><br>바운스·무한 루프 금지 · <code>prefers-reduced-motion</code> 존중</p>
+    </div>
+  </div>
+
+  <h2>5. 컴포넌트</h2>
+  <p class="muted">모든 컴포넌트는 CSS 커스텀 프로퍼티만 참조. <code>window.YeoumDesignSystem</code> 네임스페이스로 노출.</p>
+
+  <h3>Button — 화면당 primary 1개(R8)</h3>
+  <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <span class="btn btn-primary">결과물 만들기</span>
+    <span class="btn btn-secondary">다시 엮기</span>
+    <span class="btn btn-ghost">그만</span>
+    <span class="btn btn-primary" style="background:var(--thread-3)">비활성</span>
+    <span class="muted" style="font-size:12.5px">variant: primary / secondary / ghost · size: md 48 / lg 56 · pill · 프레스 시 scale 변화 없음</span>
+  </div>
+
+  <div class="grid g2" style="margin-top:12px">
+    <div class="card"><h3 style="margin-top:0">core</h3><p style="margin:0;font-size:13px" class="muted">Button · IconButton · TextField · Chip</p></div>
+    <div class="card"><h3 style="margin-top:0">capture</h3><p style="margin:0;font-size:13px" class="muted">MicButton(96px 히어로) · PromptHint(회전 힌트)</p></div>
+    <div class="card"><h3 style="margin-top:0">fragments</h3><p style="margin:0;font-size:13px" class="muted">FragmentCard · SeedCard · WeaveBar(하단 고정)</p></div>
+    <div class="card"><h3 style="margin-top:0">카드 스타일</h3><p style="margin:0;font-size:13px" class="muted">흰 배경 · radius 16 · 헤어라인 보더 + 옅은 그림자. 좌측 컬러 보더 금지.</p></div>
+  </div>
+
+  <h2>6. 카피 · 보이스</h2>
+  <p class="muted">짧고 다정하게, 비난·독촉 없이. 이모지 미사용. (토스 라이팅 8원칙을 엮음 톤으로 각색.)</p>
+  <div class="grid g2">
+    <div class="do"><div class="h">이렇게</div><ul><li>뭐든 쏟아</li><li>엮어줘</li><li>받아쓰기가 잘 안 됐어요. 한 번 더?</li><li>당신의 조각 12개 → 이 글이 됐어요</li></ul></div>
+    <div class="dont"><div class="h">이렇게 말고</div><ul><li>새 노트를 생성하시겠습니까?</li><li>음성 인식 오류 발생</li><li>3일째 미작성! 스트릭이 끊겨요</li><li>정말 나가시겠습니까?</li></ul></div>
+  </div>
+  <p class="muted" style="margin-top:10px;font-size:12.5px"><b>금지 어휘:</b> 마감 · 연체 · 놓침 · 벌점 · 스트릭 · "정말 나가시겠습니까". <b>숫자로 증폭 가시화:</b> "조각 N개 → 결과물" Before/After 대비가 핵심 카피 장치.</p>
+
+  <h2>7. 아이코노그래피</h2>
+  <ul>
+    <li>얇은 스트로크(1.5~2px) 라인 아이콘. 색은 <code>currentColor</code> 상속. 채운(filled) 아이콘·이모지·유니코드 대용 금지.</li>
+    <li>핵심 글리프: <code>mic</code>(쏟기) · <code>type</code>(입력) · <code>git-merge</code>(엮기) · <code>copy</code>·<code>share</code>(내보내기) · <code>x</code>(빼기) · <code>check</code>(선택).</li>
+    <li><b>대체 플래그:</b> 소스에 아이콘 세트 없음 → Lucide CDN으로 임시 대체. 실제 세트 확보 시 교체.</li>
+    <li>로고 없음 — 마크 자리엔 Pretendard 600 워드마크 "엮음"으로 조판. 로고를 그리거나 지어내지 않는다.</li>
+  </ul>
+
+  <h2>8. 경계선 — 넣지 않는 것</h2>
+  <p class="muted">"쪼개되 사람의 할 일이 아니라 결과물을 쪼갠다 / 깊이는 기능 수가 아니라 변환의 질로."</p>
+  <div class="dont" style="background:var(--paper-1)">
+    <ul style="text-decoration:none">
+      <li style="text-decoration:none;color:var(--ink-1)"><b>일정관리·리마인드·투두·목표→태스크 매니저</b> — 보호 프레임 영역, 정체성 붕괴.</li>
+      <li style="text-decoration:none;color:var(--ink-1)"><b>발산 지도·사고 그래프</b> — 옵시디언 짝퉁 자초 + "정리 도구"라 ADHD가 못 쓰는 바로 그것.</li>
+      <li style="text-decoration:none;color:var(--ink-1)"><b>"뇌 개선/증상 완화/시냅스" 치료 주장</b> — 확장 이탈.</li>
+    </ul>
+  </div>
+  <p class="muted" style="margin-top:10px;font-size:12.5px">단, '기획'류 결과물 끝의 <b>실행 3단계</b>는 허용 — 이는 산출물의 내용일 뿐 사용자의 하루를 추적하지 않는다.</p>
+
+  <h2>9. 참조</h2>
+  <ul>
+    <li><code>styles.css</code> — 전역 진입점 (tokens/* @import). 소비 프로젝트는 이 파일 하나만 링크.</li>
+    <li><code>tokens/</code> — colors · typography · spacing · fonts(Pretendard CDN)</li>
+    <li><code>components/</code> — core · capture · fragments</li>
+    <li><code>ui_kits/yeoum-app/</code> — 인터랙티브 목업 (홈·지도 제거·보관함·설정 + 쏟기→엮기→결과물→되물음)</li>
+    <li>전체 상세는 프로젝트 <code>readme.md</code> 참조.</li>
+  </ul>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

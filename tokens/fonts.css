@@ -1,0 +1,11 @@
+/* tokens/fonts.css — Pretendard 단일 패밀리
+ * 폰트 파일 미제공 → jsDelivr CDN(Pretendard v1.3.9) 참조.
+ * 로컬 woff2 확보 시 이 파일의 @font-face src를 로컬 경로로 교체한다. */
+
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+
+:root {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

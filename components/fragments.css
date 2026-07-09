@@ -1,0 +1,120 @@
+/* components/fragments.css — FragmentCard · SeedCard · WeaveBar(하단 고정)
+ * 조각(fragment) → 씨앗(seed) → 엮기(weave)의 표면들. */
+
+/* ── FragmentCard — 쏟아낸 조각 하나 ─────────────────
+ * 미완성 허용(R4). 흰 배경 · radius 16 · 헤어라인 + 옅은 그림자. */
+.ys-fragment {
+  position: relative;
+  display: block;
+  background: var(--paper-card);
+  border: 1px solid var(--line-1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-4);
+  animation: ys-fragment-in var(--motion-base) var(--ease) both;
+}
+@keyframes ys-fragment-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ys-fragment__text {
+  font-size: var(--fs-body-lg);
+  line-height: var(--leading-body);
+  color: var(--ink-1);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ys-fragment__meta {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+/* 빼기(x) — 채운 아이콘 금지, currentColor 라인 아이콘 */
+.ys-fragment__remove {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+}
+
+/* ── SeedCard — AI가 뽑아낸 핵심 씨앗 ────────────────
+ * title 20/600. 흰 배경. 좌측 컬러 보더 금지. */
+.ys-seed {
+  background: var(--paper-card);
+  border: 1px solid var(--line-1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-5);
+}
+.ys-seed__title {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-title);
+  line-height: 1.35;
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-1);
+}
+.ys-seed__body {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-body-lg);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+/* ── WeaveBar — 하단 고정 엮기 바 ────────────────────
+ * "조각 N개 → 엮기". 숫자로 증폭 가시화. 독촉 아님(R7). */
+.ys-weavebar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  padding-bottom: max(var(--sp-3), env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--paper-0) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-top: 1px solid var(--line-1);
+}
+.ys-weavebar__count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  font-size: var(--fs-body-md);
+  color: var(--ink-2);
+}
+.ys-weavebar__count b {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-title);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.ys-weavebar .ys-btn {
+  margin-left: auto;
+}
+
+/* ── 증폭 카운터 — "조각 N개 → 결과물" Before/After ─── */
+.ys-amplify {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-body-md);
+  color: var(--ink-2);
+}
+.ys-amplify b {
+  color: var(--accent);
+  font-weight: var(--fw-title);
+  font-variant-numeric: tabular-nums;
+}
+.ys-amplify svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--ink-3);
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

@@ -1,0 +1,193 @@
+/* components/core.css — Button · IconButton · TextField · Chip
+ * 모든 값은 CSS 커스텀 프로퍼티만 참조한다. */
+
+/* ── Button ──────────────────────────────────────────
+ * variant: primary / secondary / ghost   size: md 48 / lg 56
+ * 화면당 primary 1개(R8). pill. 프레스 시 scale 변화 없음. */
+.ys-btn {
+  --_h: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: var(--_h);
+  padding: 0 var(--sp-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-label);
+  letter-spacing: var(--tracking-body);
+  cursor: pointer;
+  user-select: none;
+  background: var(--paper-1);
+  color: var(--ink-1);
+  transition: background var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+.ys-btn--lg {
+  --_h: 56px;
+  padding: 0 var(--sp-6);
+}
+.ys-btn:disabled,
+.ys-btn[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: default;
+}
+
+.ys-btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.ys-btn--primary:hover {
+  background: var(--accent-hover);
+}
+.ys-btn--primary:active {
+  background: var(--accent-press);
+}
+.ys-btn--primary:disabled,
+.ys-btn--primary[aria-disabled="true"] {
+  background: var(--accent-muted);
+}
+
+.ys-btn--secondary {
+  background: var(--surface-card);
+  color: var(--ink-1);
+  border-color: var(--line-2);
+}
+.ys-btn--secondary:hover {
+  background: var(--paper-1);
+}
+.ys-btn--secondary:active {
+  background: var(--paper-2);
+}
+
+.ys-btn--ghost {
+  background: transparent;
+  color: var(--ink-2);
+}
+.ys-btn--ghost:hover {
+  background: var(--paper-1);
+  color: var(--ink-1);
+}
+.ys-btn--ghost:active {
+  background: var(--paper-2);
+}
+
+.ys-btn--block {
+  display: flex;
+  width: 100%;
+}
+
+/* ── IconButton ──────────────────────────────────────
+ * 최소 48px 터치 타깃. 아이콘은 currentColor 상속. */
+.ys-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+.ys-icon-btn:hover {
+  background: var(--paper-1);
+  color: var(--ink-1);
+}
+.ys-icon-btn:active {
+  background: var(--paper-2);
+}
+.ys-icon-btn[aria-current="true"],
+.ys-icon-btn.is-active {
+  color: var(--accent);
+}
+.ys-icon-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── TextField ───────────────────────────────────────
+ * 강제 라벨/저장 없음(R3). 미완성 허용(R4). */
+.ys-field {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-card);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-md);
+  color: var(--ink-1);
+  font-size: var(--fs-body-md);
+  line-height: var(--leading-body);
+  resize: none;
+  transition: border-color var(--motion-fast) var(--ease);
+}
+.ys-field::placeholder {
+  color: var(--ink-3);
+}
+.ys-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+textarea.ys-field {
+  min-height: 120px;
+}
+
+/* ── Chip ────────────────────────────────────────────
+ * 태그/필터/선택 토큰. label 14/500. */
+.ys-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 32px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  color: var(--ink-2);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-label);
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+.ys-chip:hover {
+  background: var(--paper-1);
+}
+.ys-chip[aria-pressed="true"],
+.ys-chip.is-selected {
+  background: var(--accent-tint);
+  border-color: transparent;
+  color: var(--accent-press);
+}
+.ys-chip svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Card (공통 카드 스타일) ─────────────────────────
+ * 흰 배경 · radius 16 · 헤어라인 보더 + 옅은 그림자.
+ * 좌측 컬러 보더 금지. */
+.ys-card {
+  background: var(--paper-card);
+  border: 1px solid var(--line-1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-4);
+}

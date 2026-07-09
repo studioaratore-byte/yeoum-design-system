@@ -1,0 +1,71 @@
+/* styles.css — 엮음(Yeoum) 디자인 시스템 전역 진입점.
+ * 소비 프로젝트는 이 파일 하나만 링크한다.
+ *   <link rel="stylesheet" href="styles.css">
+ */
+
+/* ── 토큰 ─────────────────────────────────────────── */
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/spacing.css";
+
+/* ── 컴포넌트 ─────────────────────────────────────── */
+@import "./components/core.css";
+@import "./components/capture.css";
+@import "./components/fragments.css";
+
+/* ── 베이스 리셋 ──────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper-0);
+  color: var(--ink-1);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body-md);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  letter-spacing: var(--tracking-tight);
+}
+
+:where(a) {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+:where(button, input, textarea, select) {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+/* 포커스 — 키보드 사용자만 링을 본다 */
+:where(a, button, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--thread-2);
+  color: var(--ink-1);
+}
