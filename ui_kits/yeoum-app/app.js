@@ -32,6 +32,7 @@
       state.cards = s.cards || [];
       state.connections = s.connections || { clusters: [], resurface: [] };
       state.settings = s.settings || state.settings;
+      if (typeof s.connDirty === "boolean") state.connDirty = s.connDirty;
     } catch (e) {}
   }
   function persist() {
@@ -42,40 +43,69 @@
           cards: state.cards,
           connections: state.connections,
           settings: state.settings,
+          connDirty: state.connDirty,
         })
       );
     } catch (e) {}
   }
 
   /* ── 시드 데이터(시연용) ──────────────────────────
-   * 연결·노출은 조각이 쌓여야 살아난다. 첫 실행 시 예시 카드를 심어
-   * '흩어진 생각이 하나로 이어지는' 순간을 바로 보여준다. */
+   * 연결·노출은 조각이 쌓여야 살아난다. 첫 실행 시 '사용자가 쏟은 듯한'
+   * 원문 조각만 심는다. keyword·topic·연결은 하드코딩하지 않고,
+   * 부팅 후 실제 AI(distill·connect)가 생성한다. */
   var DAY = 86400000;
   function seedIfEmpty() {
     if (state.cards.length) return;
     var now = Date.now();
     var seeds = [
-      ["게임할 땐 몇 시간이고 집중하는데 공부는 10분도 못 앉아있어", "게임", "게임엔 몰입", 6],
-      ["ADHD는 관심 있는 거엔 과몰입한대. 나도 딱 그런 듯", "ADHD", "과몰입 특성", 6],
-      ["아이디어는 계속 나오는데 하나도 끝을 못 봐", "실행력", "완성이 안 됨", 5],
-      ["할 일을 게임 퀘스트처럼 만들면 실행이 될까", "실행력", "퀘스트로 실행", 4],
-      ["타이머 25분 켜고 하기, 이건 좀 먹혔음", "집중", "짧은 타이머", 3],
-      ["친구가 옆에 있으면 이상하게 집중이 잘돼", "집중", "같이 하면 집중", 3],
-      ["ADHD 앱들은 죄다 할 일 관리라 죄책감만 들고 재미없어", "ADHD", "기존 앱 불만", 2],
-      ["게임처럼 레벨업 되는 실행 도구 있으면 진짜 쓸 텐데", "게임", "게임형 도구", 1],
-      ["요즘 계속 실행력 생각이 맴돌아", "실행력", "반복되는 관심", 0],
+      ["게임할 땐 몇 시간이고 집중하는데 공부는 10분도 못 앉아있어", 6],
+      ["ADHD는 관심 있는 거엔 과몰입한대. 나도 딱 그런 듯", 6],
+      ["아이디어는 계속 나오는데 하나도 끝을 못 봐", 5],
+      ["할 일을 게임 퀘스트처럼 만들면 실행이 될까", 4],
+      ["타이머 25분 켜고 하기, 이건 좀 먹혔음", 3],
+      ["친구가 옆에 있으면 이상하게 집중이 잘돼", 3],
+      ["ADHD 앱들은 죄다 할 일 관리라 죄책감만 들고 재미없어", 2],
+      ["게임처럼 레벨업 되는 실행 도구 있으면 진짜 쓸 텐데", 1],
+      ["요즘 계속 실행력 생각이 맴돌아", 0],
     ];
     state.cards = seeds.map(function (s, i) {
       return {
         id: "seed" + i,
         raw: s[0],
-        keyword: s[1],
-        topic: s[2],
-        ts: now - s[3] * DAY - (seeds.length - i) * 1200000,
+        keyword: "", // AI가 보관 단계에서 채운다
+        topic: "",
+        ts: now - s[1] * DAY - (seeds.length - i) * 1200000,
       };
     });
     state.connDirty = true;
     persist();
+  }
+
+  /* 보관(distill)이 아직 안 된 카드들을 실제 AI로 채운다. */
+  function distillPending(cb) {
+    var pending = state.cards.filter(function (c) {
+      return !c.keyword;
+    });
+    if (!pending.length) {
+      if (cb) cb();
+      return;
+    }
+    WEAVE.distill(
+      pending.map(function (c) {
+        return c.raw;
+      })
+    ).then(function (items) {
+      pending.forEach(function (c, i) {
+        if (items && items[i]) {
+          c.keyword = items[i].keyword;
+          c.topic = items[i].topic;
+        }
+      });
+      persist();
+      if (current === "capture") renderRecent();
+      if (current === "store") go("store");
+      if (cb) cb();
+    });
   }
 
   /* ── DOM 헬퍼 ─────────────────────────────────── */
@@ -885,11 +915,13 @@
   seedIfEmpty();
   applyMotionSetting();
   go("capture");
-  // 노출(재부상)을 위해 배경에서 연결을 미리 계산
+  // 부팅 후: 아직 보관 안 된 카드를 실제 AI로 채우고 → 연결(노출) 계산
   setTimeout(function () {
-    if (state.connDirty)
-      refreshConnections(function () {
-        if (current === "capture") renderResurface();
-      });
+    distillPending(function () {
+      if (state.connDirty)
+        refreshConnections(function () {
+          if (current === "capture") renderResurface();
+        });
+    });
   }, 400);
 })();

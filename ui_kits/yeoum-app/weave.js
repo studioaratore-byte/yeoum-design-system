@@ -11,10 +11,11 @@
 (function (global) {
   "use strict";
 
-  var API_BASE = (typeof global !== "undefined" && global.YEOUM_API_BASE) || "";
-
   function apiCall(payload) {
-    return fetch(API_BASE + "/api/weave", {
+    // 호출 시점에 base를 읽어, 정적 호스팅에서도 window.YEOUM_API_BASE로
+    // 배포된 서버리스 API(/api/weave)를 가리킬 수 있게 한다.
+    var base = (typeof global !== "undefined" && global.YEOUM_API_BASE) || "";
+    return fetch(base + "/api/weave", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
