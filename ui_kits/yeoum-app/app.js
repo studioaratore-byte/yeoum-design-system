@@ -49,10 +49,10 @@
     } catch (e) {}
   }
 
-  /* ── 시드 데이터(시연용) ──────────────────────────
-   * 연결·노출은 조각이 쌓여야 살아난다. 첫 실행 시 '사용자가 쏟은 듯한'
-   * 원문 조각만 심는다. keyword·topic·연결은 하드코딩하지 않고,
-   * 부팅 후 실제 AI(distill·connect)가 생성한다. */
+  /* ── 예시 데이터(데모용, 자동 아님) ────────────────
+   * 첫 실행은 빈 상태로 시작한다. 이 함수는 설정의 '예시 불러오기(데모용)'
+   * 로만 호출되어, '사용자가 쏟은 듯한' 원문 조각만 심는다. keyword·topic·
+   * 연결은 하드코딩하지 않고 실제 AI(distill·connect)가 생성한다. */
   var DAY = 86400000;
   function seedIfEmpty() {
     if (state.cards.length) return;
@@ -695,7 +695,7 @@
     });
     g3.appendChild(clr);
     var reseed = h(
-      '<button class="ys-btn ys-btn--ghost ys-btn--block" type="button" style="margin-top:8px">예시 생각 다시 넣기</button>'
+      '<button class="ys-btn ys-btn--ghost ys-btn--block" type="button" style="margin-top:8px">예시 생각 불러오기 (데모용)</button>'
     );
     reseed.addEventListener("click", function () {
       state.cards = [];
@@ -915,10 +915,11 @@
 
   /* ── 부트 ─────────────────────────────────────── */
   load();
-  seedIfEmpty();
+  // 첫 실행은 '빈 상태'로 시작한다. 예시(시드)는 자동으로 넣지 않고,
+  // 설정의 '예시 불러오기(데모용)'로만 원할 때 넣는다.
   applyMotionSetting();
   go("capture");
-  // 부팅 후: 아직 보관 안 된 카드를 실제 AI로 채우고 → 연결(노출) 계산
+  // 부팅 후: 이전에 담아둔 카드가 있으면 미완 보관을 채우고 → 연결 계산
   setTimeout(function () {
     distillPending(function () {
       if (state.connDirty)
