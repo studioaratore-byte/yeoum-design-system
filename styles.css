@@ -4,15 +4,15 @@
  */
 
 /* ── 토큰 ─────────────────────────────────────────── */
-@import "./tokens/fonts.css";
-@import "./tokens/colors.css";
-@import "./tokens/typography.css";
-@import "./tokens/spacing.css";
+@import "./tokens/fonts.css?v=10";
+@import "./tokens/colors.css?v=10";
+@import "./tokens/typography.css?v=10";
+@import "./tokens/spacing.css?v=10";
 
 /* ── 컴포넌트 ─────────────────────────────────────── */
-@import "./components/core.css?v=4";
-@import "./components/capture.css?v=4";
-@import "./components/fragments.css?v=4";
+@import "./components/core.css?v=10";
+@import "./components/capture.css?v=10";
+@import "./components/fragments.css?v=10";
 
 /* ── 베이스 리셋 ──────────────────────────────────── */
 *,

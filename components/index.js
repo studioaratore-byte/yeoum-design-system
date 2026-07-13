@@ -41,6 +41,18 @@
     send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
     folder:
       '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>',
+    search:
+      '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+    "rotate-cw":
+      '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/>',
+    pencil:
+      '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+    download:
+      '<path d="M12 3v12"/><path d="m7 11 5 4 5-4"/><path d="M5 21h14"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M18.4 5.6l1.4-1.4M4.2 19.8l1.4-1.4"/>',
+    "corner-down-right":
+      '<path d="M4 4v7a2 2 0 0 0 2 2h13"/><path d="m15 9 4 4-4 4"/>',
   };
 
   // 마스코트 — 브랜드 장식(고양이). UI 아이콘이 아니라 일러스트라 별도.
@@ -72,11 +84,23 @@
     );
   }
 
+  /** 앱 전역이 모션 감소 상태인가 (OS 설정 또는 인앱 토글). */
+  function motionReduced() {
+    var mq =
+      global.matchMedia &&
+      global.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var cls =
+      global.document &&
+      global.document.documentElement.classList.contains("reduce-motion");
+    return !!(mq || cls);
+  }
+
   var YeoumDesignSystem = {
-    version: "0.1.0",
+    version: "0.2.0",
     icons: ICONS,
     icon: icon,
     mascot: MASCOT,
+    motionReduced: motionReduced,
 
     /** 회전형 프롬프트 힌트(R6). 빈 화면 공포 방지, 독촉 아님(R7). */
     promptHints: [
@@ -88,24 +112,23 @@
       "쏟고 나면 내가 엮어줄게.",
     ],
 
-    /** 회전 힌트를 element에 순환시킨다. 반환값으로 stop() 제공. */
+    /** 회전 힌트를 element에 순환시킨다. 반환값의 stop()으로 반드시 정리.
+     *  모션 감소(OS 또는 인앱)면 자동 교체를 멈추고 첫 힌트만 고정한다
+     *  (WCAG 2.2.2 — 5초 이상 자동 갱신엔 정지 수단 필요). */
     rotateHints: function (el, opts) {
       opts = opts || {};
       var hints = opts.hints || YeoumDesignSystem.promptHints;
       var interval = opts.interval || 4200;
       var i = 0;
       el.textContent = hints[0];
-      var reduce =
-        global.matchMedia &&
-        global.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (motionReduced()) {
+        return { stop: function () {} };
+      }
+      var swapT = null;
       var timer = setInterval(function () {
         i = (i + 1) % hints.length;
-        if (reduce) {
-          el.textContent = hints[i];
-          return;
-        }
         el.classList.add("is-swapping");
-        setTimeout(function () {
+        swapT = setTimeout(function () {
           el.textContent = hints[i];
           el.classList.remove("is-swapping");
         }, 240);
@@ -113,6 +136,7 @@
       return {
         stop: function () {
           clearInterval(timer);
+          if (swapT) clearTimeout(swapT);
         },
       };
     },
