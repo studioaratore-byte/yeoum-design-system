@@ -1,8 +1,8 @@
 {
-  "name": "yeoum-design-system",
+  "name": "piko",
   "version": "0.1.0",
   "private": true,
-  "description": "엮음(Yeoum) 디자인 시스템 + 앱 — Vercel 서버리스로 Claude 엮기 백엔드 제공",
+  "description": "Piko — 발산형(ADHD) 결과물 엔진: 디자인 시스템 + 앱 (Vercel 서버리스로 Claude 백엔드)",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.0"
   }

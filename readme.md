@@ -1,4 +1,4 @@
-# 엮음 (Yeoum) — Design System & App
+# Piko — Design System & App
 
 > 폭주하는 생각을 마구 쏟으면, AI가 유의미한 걸 뽑아 '완성된 결과물'로 엮어주는
 > 발산형(ADHD) 인재의 결과물 엔진.
@@ -74,7 +74,7 @@ handoff/                원본 디자인 핸드오프 문서
 
 - **폰트** — Pretendard 로컬 woff2 미제공 → CDN 참조. 확보 시 `tokens/fonts.css`.
 - **아이콘** — 소스에 세트 없음 → Lucide 형태 인라인 SVG로 임시 대체(`components/index.js`의 `ICONS`).
-- **로고** — 로고 없음. Pretendard 600 워드마크 "엮음"으로 조판. 로고를 그리거나 지어내지 않는다.
+- **로고** — 로고 없음. Pretendard 600 워드마크 "Piko"로 조판. 로고를 그리거나 지어내지 않는다.
 - **엮기 엔진** — 백엔드/LLM 없음 → `weave.js`의 로컬 목업. 함수 하나를 LLM 호출로 교체.
 
 ## 카피 · 보이스

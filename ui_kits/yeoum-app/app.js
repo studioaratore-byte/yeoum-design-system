@@ -670,10 +670,10 @@
     g1.appendChild(row);
     scroll.appendChild(g1);
 
-    var g2 = h('<div class="settings-group"><h2>엮음이 하지 않는 것</h2></div>');
+    var g2 = h('<div class="settings-group"><h2>Piko가 하지 않는 것</h2></div>');
     g2.appendChild(
       h(
-        '<div class="boundary-note">엮음은 <b>일정·리마인드·투두·목표 추적</b>을 하지 않아요. ' +
+        '<div class="boundary-note">Piko는 <b>일정·리마인드·투두·목표 추적</b>을 하지 않아요. ' +
           "빨간 배지도, 스트릭도, 독촉도 없어요.<br><br>과거 생각을 다시 보여주는 건 " +
           "<b>독촉이 아니라</b>, 흩어진 생각을 다시 만나게 하려는 거예요. 결론은 늘 당신이 내려요.</div>"
       )
@@ -713,7 +713,7 @@
 
     scroll.appendChild(
       h(
-        '<p class="ys-caption" style="text-align:center;margin-top:24px">엮음 · v' +
+        '<p class="ys-caption" style="text-align:center;margin-top:24px">Piko · v' +
           DS.version +
           "</p>"
       )
@@ -728,7 +728,7 @@
     var panel = h('<aside class="drawer" role="dialog" aria-label="메뉴"></aside>');
 
     var head = h('<div class="drawer__head"></div>');
-    head.appendChild(h('<div class="wordmark">엮<span>음</span></div>'));
+    head.appendChild(h('<div class="wordmark">Pik<span>o</span></div>'));
     var close = h(
       '<button class="ys-icon-btn" type="button" aria-label="닫기">' +
         icon("x", 24) +
@@ -771,7 +771,7 @@
         label: "도움말",
         sub: null,
         act: function () {
-          toast("쏟기만 해요. 보관·연결·다시 만나기는 엮음이 맡아요.");
+          toast("쏟기만 해요. 보관·연결·다시 만나기는 Piko가 맡아요.");
         },
       },
       {
@@ -800,7 +800,7 @@
     panel.appendChild(menu);
 
     panel.appendChild(
-      h('<div class="drawer__foot">엮음 · v' + DS.version + "</div>")
+      h('<div class="drawer__foot">Piko · v' + DS.version + "</div>")
     );
 
     overlay.appendChild(panel);
